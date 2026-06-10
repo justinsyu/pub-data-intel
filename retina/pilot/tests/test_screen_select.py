@@ -40,3 +40,11 @@ def test_select_pilot_constraints():
     assert types.count("county") >= 3
     assert len({p["mac"] for p in picked}) >= 4
     assert len({p["unit_id"] for p in picked}) == 10
+
+
+def test_select_pilot_none_mac_not_counted():
+    pool = _pool()
+    pool.loc[pool.index[:2], "mac"] = None
+    picked = select.select_pilot(screen.score_screen(pool), n=10)
+    real_macs = {p["mac"] for p in picked if p["mac"] is not None}
+    assert len(real_macs) >= 4

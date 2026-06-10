@@ -7,12 +7,12 @@ MIN_MACS = 4
 
 
 def select_pilot(scored: pd.DataFrame, n: int = 10) -> list[dict]:
-    pool = scored.sort_values("screen_score", ascending=False).to_dict("records")
+    pool = scored.sort_values("screen_score", ascending=False, kind="mergesort").to_dict("records")
     picked: list[dict] = []
 
     def counts():
         types = [p["unit_type"] for p in picked]
-        return types.count("cbsa"), types.count("county"), {p["mac"] for p in picked}
+        return types.count("cbsa"), types.count("county"), {p["mac"] for p in picked if p["mac"] is not None}
 
     for row in pool:
         if len(picked) == n:
