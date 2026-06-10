@@ -62,11 +62,20 @@ def pdc_query(dataset_id: str, conditions: list[tuple], limit: int = 1500) -> li
 
 
 def openpayments_resolve(title_substring: str) -> str:
+    """Resolve an Open Payments dataset by title substring.
+
+    When multiple datasets match (e.g. year-prefixed "2023 General Payment Data",
+    "2024 General Payment Data"), returns the one with the lexically-latest title
+    so callers always get the most recent program year.
+    """
     items = cached_json(sources.URLS["openpayments_metastore"])
-    for item in items:
-        if title_substring.strip().lower() in item.get("title", "").strip().lower():
-            return item["identifier"]
-    raise LookupError(f"Open Payments dataset not found: {title_substring}")
+    matches = [item for item in items
+               if title_substring.strip().lower() in item.get("title", "").strip().lower()]
+    if not matches:
+        raise LookupError(f"Open Payments dataset not found: {title_substring}")
+    # Pick the latest by title sort (year prefix makes lexical == chronological)
+    best = max(matches, key=lambda item: item.get("title", ""))
+    return best["identifier"]
 
 
 def openpayments_query(dataset_id: str, conditions: list[tuple], limit: int = 2000) -> list[dict]:

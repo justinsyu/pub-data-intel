@@ -57,3 +57,17 @@ def test_pdc_conditions_built_correctly():
     assert params["conditions[0][property]"] == "pri_spec"
     assert params["conditions[0][value]"] == "OPHTHALMOLOGY"
     assert params["conditions[0][operator]"] == "="
+
+
+def test_openpayments_resolve_picks_latest_year(monkeypatch):
+    """openpayments_resolve must return the lexically-latest title match (latest program year)."""
+    items = [
+        {"title": "2022 General Payment Data", "identifier": "id-2022"},
+        {"title": "2024 General Payment Data", "identifier": "id-2024"},
+        {"title": "2023 General Payment Data", "identifier": "id-2023"},
+        # Non-matching entry should be ignored entirely
+        {"title": "2024 Research Payment Data", "identifier": "id-research"},
+    ]
+    monkeypatch.setattr(api, "cached_json", lambda url, params=None: items)
+    ds_id = api.openpayments_resolve("General Payment Data")
+    assert ds_id == "id-2024"
