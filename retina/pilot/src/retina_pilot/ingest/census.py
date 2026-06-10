@@ -42,7 +42,7 @@ def parse_cbsa_xwalk(raw: bytes) -> pd.DataFrame:
     df = pd.read_csv(io.BytesIO(raw), dtype=str, encoding="latin-1")
     df = df.dropna(subset=["fipsstatecode", "fipscountycode"])
     out = pd.DataFrame({
-        "fips": df["fipsstatecode"].str.zfill(2) + df["fipscountycode"].str.zfill(3),
+        "fips": df["fipsstatecode"].str.strip().str.zfill(2) + df["fipscountycode"].str.strip().str.zfill(3),
         "cbsa_code": df["cbsacode"],
         "cbsa_title": df["cbsatitle"],
         "metro_micro": df["metropolitanmicropolitanstatis"],
@@ -92,5 +92,5 @@ def load_zcta_county() -> pd.DataFrame:
     df = pd.read_csv(io.BytesIO(raw), sep="|", dtype=str)
     df["AREALAND_PART"] = pd.to_numeric(df["AREALAND_PART"], errors="coerce").fillna(0)
     df = df.dropna(subset=["GEOID_ZCTA5_20", "GEOID_COUNTY_20"])
-    df = df.sort_values("AREALAND_PART").groupby("GEOID_ZCTA5_20").tail(1)
-    return pd.DataFrame({"zcta": df["GEOID_ZCTA5_20"], "fips": df["GEOID_COUNTY_20"]})
+    df = df.sort_values("AREALAND_PART", kind="mergesort").groupby("GEOID_ZCTA5_20").tail(1)
+    return pd.DataFrame({"zcta": df["GEOID_ZCTA5_20"], "fips": df["GEOID_COUNTY_20"]}).reset_index(drop=True)
