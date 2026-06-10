@@ -56,7 +56,8 @@ def pdc_resolve(title: str) -> str:
     raise LookupError(f"PDC dataset not found: {title}")
 
 
-def pdc_query(dataset_id: str, conditions: list[tuple], limit: int = 2000) -> list[dict]:
+def pdc_query(dataset_id: str, conditions: list[tuple], limit: int = 1500) -> list[dict]:
+    # PDC DKAN API enforces limit <= 1500 (HTTP 400 if exceeded).
     return _dkan_query(sources.URLS["pdc_datastore_query"], dataset_id, conditions, limit)
 
 
