@@ -137,12 +137,21 @@ def run_score(outdir: Path = OUT_DIR) -> pd.DataFrame:
     return cards
 
 
+def run_actions(outdir: Path = OUT_DIR) -> None:
+    from retina_pilot.actions import engine
+    cards = pd.read_parquet(outdir / "scorecards.parquet")
+    rules = engine.load_rules()
+    all_actions = {row["unit_id"]: engine.generate_actions(row.to_dict(), rules)
+                   for _, row in cards.iterrows()}
+    (outdir / "actions.json").write_text(json.dumps(all_actions, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(prog="retina-pilot")
     parser.add_argument("stage", choices=["screen", "select", "deepdive", "score", "actions", "export"])
     args = parser.parse_args()
     stage = {"screen": run_screen, "select": run_select, "deepdive": run_deepdive,
-             "score": run_score}.get(args.stage)
+             "score": run_score, "actions": run_actions}.get(args.stage)
     if stage is None:
         raise SystemExit(f"stage not implemented yet: {args.stage}")
     stage()

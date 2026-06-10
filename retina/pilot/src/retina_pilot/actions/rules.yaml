@@ -1,0 +1,73 @@
+- id: ma_low_supply_high_ma
+  role: market_access
+  when:
+    - {metric: supply, op: "<=", value: 45}
+    - {metric: ma_pct, op: ">=", value: 45}
+  action: >
+    High Medicare Advantage penetration combined with thin retina supply. Assess MA
+    network adequacy, site-of-care economics, and plan-level medical policy for
+    anti-VEGF agents in this geography.
+
+- id: ma_policy_watch
+  role: market_access
+  when:
+    - {metric: policy_articles, op: ">=", value: 1}
+  action: >
+    Retina-relevant LCD/article activity exists for the MAC jurisdictions in scope.
+    Review covered-diagnosis lists and documentation language against current billing
+    practice; track revision history for early policy-drift signals.
+
+- id: ma_340b_concentration
+  role: market_access
+  when:
+    - {metric: ce_340b, op: ">=", value: 3}
+  action: >
+    Multiple 340B covered entities operate here. Account strategy should model
+    site-of-care incentive differences between hospital outpatient and
+    community-office settings before interpreting product mix.
+
+- id: msl_trial_sites
+  role: msl
+  when:
+    - {metric: trial_count, op: ">=", value: 1}
+  action: >
+    Active retina trial sites are recruiting in this geography. Prioritize
+    investigator engagement and align scientific exchange with locally active
+    protocols and endpoints.
+
+- id: msl_no_trials_high_volume
+  role: msl
+  when:
+    - {metric: trial_count, op: "==", value: 0}
+    - {metric: utilization, op: ">=", value: 60}
+  action: >
+    High injection utilization but no active trial presence. Identify high-volume
+    treaters as potential real-world-evidence partners or future site candidates.
+
+- id: medaff_low_biosimilar
+  role: medical_affairs
+  when:
+    - {metric: biosimilar_share_pct, op: "<=", value: 10}
+    - {metric: injectors, op: ">=", value: 1}
+  action: >
+    Biosimilar share of anti-VEGF services is low relative to the pilot pool.
+    Evidence needs around comparative effectiveness, switching, and payer policy
+    may explain adoption friction; validate with local accounts.
+
+- id: medaff_access_equity
+  role: medical_affairs
+  when:
+    - {metric: access_risk, op: ">=", value: 70}
+  action: >
+    Elevated access-risk context (deprivation, rurality, MA mix). Treatment-burden
+    and adherence-support evidence is most relevant here; consider geography for
+    health-equity-focused evidence generation.
+
+- id: medaff_supply_desert
+  role: medical_affairs
+  when:
+    - {metric: injectors, op: "<=", value: 2}
+  action: >
+    Two or fewer Medicare-visible injectors serve this geography. Document as a
+    capacity-constrained market; durability-focused evidence (longer intervals,
+    fewer visits) carries outsized local relevance.
