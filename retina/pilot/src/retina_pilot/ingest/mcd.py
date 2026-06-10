@@ -14,6 +14,10 @@ Real export layout (verified 2026-06-10): the outer zip nests the CSV tables in 
 inner *_csv.zip (plus a .mdb and PDFs); CSVs are latin-1 encoded. Key tables:
 article.csv (article_id, title, last_updated, ...) and article_x_hcpc_code.csv
 (article_id, hcpc_code_id, ...).
+
+The loader is article-only: an operator-supplied current_lcd.zip is tolerated but
+contributes nothing (lcd xwalk rows lack article_id and filter out), and non-empty
+frames carry the raw export columns (contractor may be absent).
 """
 import csv
 import io
@@ -57,8 +61,13 @@ def _read_table(zf: zipfile.ZipFile, name_contains: str) -> pd.DataFrame:
     )
 
 
+# A-prefix gotcha: the MCD export's article_id is the bare number (e.g. "52451"),
+# while codes.POLICY_ANCHOR_ARTICLE is the display form "A52451"; downstream
+# comparisons must strip the prefix.
 def filter_retina(articles: pd.DataFrame, hcpc_xwalk: pd.DataFrame) -> pd.DataFrame:
-    hits = hcpc_xwalk[hcpc_xwalk["hcpc_code_id"].isin(RETINA_HCPCS)]["article_id"].unique()
+    hits = hcpc_xwalk[
+        hcpc_xwalk["hcpc_code_id"].str.strip().isin(RETINA_HCPCS)
+    ]["article_id"].unique()
     return articles[articles["article_id"].isin(hits)].reset_index(drop=True)
 
 

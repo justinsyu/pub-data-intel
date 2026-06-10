@@ -37,6 +37,8 @@ TAXONOMY_OPHTHALMOLOGY = "207W00000X"
 TAXONOMY_RETINA_SPECIALIST = "207WX0107X"
 
 POLICY_ANCHOR_ARTICLE = "A52451"  # CMS billing-and-coding article family for anti-VEGF
+# Display form with "A" prefix; the MCD export's article_id is the bare number
+# ("52451"), so comparisons against export data must strip the prefix.
 
 ALL_STATES = [
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID",
