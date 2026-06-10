@@ -1,12 +1,13 @@
 """Census ingests: county gazetteer, NBER CBSA crosswalk, ACS 65+ population, ZCTA-county."""
 import io
+import json
 import os
 import zipfile
 
 import pandas as pd
 
 from retina_pilot import sources
-from retina_pilot.ingest.http_cache import cached_get, cached_json
+from retina_pilot.ingest.http_cache import cached_get
 
 ACS_VARS = [
     "B01001_001E",  # total population
@@ -82,8 +83,7 @@ def load_pop65() -> pd.DataFrame:
             "Register at https://api.census.gov/data/key_signup.html\n"
             f"Response preview: {raw[:200]!r}"
         )
-    import json as _json
-    return parse_acs_pop65(_json.loads(raw))
+    return parse_acs_pop65(json.loads(raw))
 
 
 def load_zcta_county() -> pd.DataFrame:
