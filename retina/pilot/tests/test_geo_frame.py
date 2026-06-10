@@ -66,3 +66,10 @@ def test_aggregate_zero_pop65_guard():
     assert len(agg) > 0
     for col in ["svi", "ma_pct"]:
         assert agg[col].isna().all(), f"Expected NaN for {col} when pop65==0"
+
+
+def test_assign_units_dedupes_duplicate_xwalk_rows():
+    counties = _counties()
+    xwalk = pd.concat([_xwalk(), _xwalk()], ignore_index=True)  # duplicated rows
+    units = geo_frame.assign_units(counties, xwalk)
+    assert len(units) == len(counties)

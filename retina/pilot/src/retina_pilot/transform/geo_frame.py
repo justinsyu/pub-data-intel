@@ -7,6 +7,7 @@ METRO = "Metropolitan Statistical Area"
 
 
 def assign_units(counties: pd.DataFrame, xwalk: pd.DataFrame) -> pd.DataFrame:
+    xwalk = xwalk.drop_duplicates(subset="fips", keep="first")
     df = counties.merge(xwalk, on="fips", how="left")
     is_metro = df["metro_micro"].eq(METRO)
     df["unit_id"] = "county:" + df["fips"]
@@ -24,12 +25,13 @@ WEIGHTED_COLS = ["svi", "ma_pct"]  # population-weighted by pop65
 
 
 def aggregate_to_units(units: pd.DataFrame, county_metrics: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate county metrics to units. Precondition: county_metrics must have no NaN in pop65 or WEIGHTED_COLS (caller drops incomplete rows); NaN inputs silently deflate weighted averages."""
     df = units.merge(county_metrics, on="fips", how="inner")
     for c in WEIGHTED_COLS:
         df[f"_w_{c}"] = df[c] * df["pop65"]
     g = df.groupby(["unit_id", "unit_type", "unit_name"], as_index=False).agg(
         {**{c: "sum" for c in SUM_COLS}, **{f"_w_{c}": "sum" for c in WEIGHTED_COLS},
-         "mac": lambda s: sorted(set(s.dropna()))[0] if s.notna().any() else None,
+         "mac": lambda s: sorted(set(s.dropna()))[0] if s.notna().any() else None,  # multi-MAC CBSA: alphabetically-first jurisdiction (documented simplification)
          "state": lambda s: ",".join(sorted(set(s)))}
     )
     for c in WEIGHTED_COLS:
