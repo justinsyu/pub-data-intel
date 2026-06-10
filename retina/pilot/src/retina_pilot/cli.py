@@ -5,11 +5,16 @@ from pathlib import Path
 
 import pandas as pd
 
-from retina_pilot.ingest import area_context, census, enrollment, providers
+from retina_pilot import sources
+from retina_pilot.codes import ALL_DRUG_HCPCS, PROCEDURE_HCPCS
+from retina_pilot.ingest import area_context, census, deepdive_sources, enrollment, mcd, mupphy, providers
 from retina_pilot.score import screen as screen_score_mod
 from retina_pilot.transform import geo_frame, select as select_mod
 
 OUT_DIR = Path(__file__).resolve().parents[2] / "data" / "out"
+# sources.MCD_LOCAL_DIR is relative ("data/cache/mcd"); resolve against the pilot
+# root (same parent as OUT_DIR), not the CWD, so the stage works from anywhere.
+MCD_DIR = Path(__file__).resolve().parents[2] / sources.MCD_LOCAL_DIR
 
 
 def run_screen(outdir: Path = OUT_DIR) -> pd.DataFrame:
@@ -73,11 +78,53 @@ def run_select(outdir: Path = OUT_DIR) -> list[dict]:
     return picked
 
 
+def run_deepdive(outdir: Path = OUT_DIR) -> None:
+    selected = json.loads((outdir / "selected_10.json").read_text())
+    county_screen = pd.read_parquet(outdir / "county_screen.parquet")
+    pilot_units = {s["unit_id"] for s in selected}
+    pilot_counties = county_screen[county_screen["unit_id"].isin(pilot_units)][["fips", "unit_id"]]
+    pilot_states = sorted({s["state"].split(",")[0] for s in selected})
+
+    zcta = census.load_zcta_county()
+    zip_to_unit = zcta.merge(pilot_counties, on="fips")[["zcta", "unit_id"]]
+
+    all_codes = list(PROCEDURE_HCPCS) + ALL_DRUG_HCPCS
+    mup = mupphy.fetch_mupphy_by_hcpcs(all_codes)
+    mup = mup.merge(zip_to_unit, left_on="zip5", right_on="zcta", how="inner")
+    mup.to_parquet(outdir / "deepdive_providers.parquet", index=False)
+
+    deepdive_sources.load_qdd().to_parquet(outdir / "deepdive_qdd.parquet", index=False)
+
+    ce = deepdive_sources.load_340b()
+    if not ce.empty:  # loader returns an empty frame when no OPAIS export is available
+        ce = ce.merge(zip_to_unit, left_on="zip5", right_on="zcta", how="inner")
+    ce.to_parquet(outdir / "deepdive_340b.parquet", index=False)
+
+    sites = deepdive_sources.parse_trial_sites(deepdive_sources.fetch_retina_studies())
+    if not sites.empty:
+        sites = sites.merge(zip_to_unit, left_on="zip5", right_on="zcta", how="inner")
+    sites.to_parquet(outdir / "deepdive_trials.parquet", index=False)
+
+    # Per-state pull kept: DKAN count probe (2026-06-10) showed ophthalmology general
+    # payment volumes AL 2,677 / AZ 4,092 / LA 4,300 / NC 6,252 / TX 19,809; the max
+    # (TX) is well under the ~50k threshold where per-NPI queries would be cheaper.
+    pay = deepdive_sources.fetch_ophth_payments(pilot_states)
+    pilot_npis = sorted(set(mup["npi"]))
+    pay = pay[pay["npi"].isin(pilot_npis)]
+    pay.to_parquet(outdir / "deepdive_payments.parquet", index=False)
+
+    aff = deepdive_sources.fetch_affiliations(pilot_npis)
+    aff.to_parquet(outdir / "deepdive_affiliations.parquet", index=False)
+
+    mcd_frames = mcd.load_mcd_retina(MCD_DIR, download=True)
+    mcd_frames["articles"].to_parquet(outdir / "deepdive_mcd.parquet", index=False)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="retina-pilot")
     parser.add_argument("stage", choices=["screen", "select", "deepdive", "score", "actions", "export"])
     args = parser.parse_args()
-    stage = {"screen": run_screen, "select": run_select}.get(args.stage)
+    stage = {"screen": run_screen, "select": run_select, "deepdive": run_deepdive}.get(args.stage)
     if stage is None:
         raise SystemExit(f"stage not implemented yet: {args.stage}")
     stage()
