@@ -14,5 +14,6 @@ def test_expected_sources_present():
         "cms_data_json", "pdc_metastore", "clinicaltrials_v2",
         "openpayments_metastore", "hrsa_340b_ce",
         "pdc_datastore_query", "openpayments_datastore_query",
+        "mcd_current_article", "mcd_current_lcd",
     }
     assert set(sources.URLS) == expected

@@ -42,6 +42,13 @@ URLS = {
     # https://340bopais.hrsa.gov/Reports or UI automation. Placeholder URL retained for
     # registry completeness; ingest task (P14) must handle this via browser automation.
     "hrsa_340b_ce": "https://340bopais.hrsa.gov/dailyreports/OPA_CE_DAILY_REPORT.csv",
+    # Medicare Coverage Database weekly exports. The MCD UI gates downloads behind a
+    # license click-through, but these direct downloads.cms.gov URLs respond 200
+    # without a session (HEAD-verified 2026-06-10; ~52 MB / ~42 MB, refreshed weekly).
+    # Source page: https://www.cms.gov/medicare-coverage-database/downloads/downloadable-databases.aspx
+    # Layout: outer zip nests the CSV tables in an inner *_csv.zip; CSVs are latin-1.
+    "mcd_current_article": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/current_article.zip",
+    "mcd_current_lcd": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/current_lcd.zip",
 }
 
 # Datasets resolved by title from the CMS data.json catalog (titles, not UUIDs,
@@ -57,8 +64,9 @@ PDC_DATASET_TITLES = {
     "dac_fa": "Facility Affiliation Data",
 }
 
-# Manual-download fallback (license click-through): Medicare Coverage Database
+# Medicare Coverage Database local zip directory. Primary path: operator downloads
+# the current LCD and Article zips by hand (license click-through) from
 # https://www.cms.gov/medicare-coverage-database/downloads/downloadable-databases.aspx
-# Download current LCD and Article zips into retina/pilot/data/cache/mcd/ by hand
-# if scripted retrieval is blocked.
+# into retina/pilot/data/cache/mcd/. Scripted fallback: ingest.mcd.load_mcd_retina
+# with download=True fetches mcd_current_article via the direct URL above.
 MCD_LOCAL_DIR = "data/cache/mcd"
