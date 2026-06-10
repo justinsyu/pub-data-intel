@@ -146,12 +146,28 @@ def run_actions(outdir: Path = OUT_DIR) -> None:
     (outdir / "actions.json").write_text(json.dumps(all_actions, indent=2))
 
 
+def run_export(outdir: Path = OUT_DIR) -> None:
+    from datetime import date
+    from retina_pilot.export import dashboard_json as dj
+    dash_data = Path(__file__).resolve().parents[2] / "dashboard" / "data"
+    dj.write_dashboard_json(
+        dash_data,
+        county_screen=pd.read_parquet(outdir / "county_screen.parquet"),
+        cards=pd.read_parquet(outdir / "scorecards.parquet"),
+        providers=pd.read_parquet(outdir / "deepdive_providers.parquet"),
+        trials=pd.read_parquet(outdir / "deepdive_trials.parquet"),
+        actions=json.loads((outdir / "actions.json").read_text()),
+        meta={"generated": str(date.today()), "acs_vintage": "Census PEP 2023 county age-sex estimates (ACS API fallback)",
+              "sources_note": "All data from official public sources; see the project spec for the registry."},
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(prog="retina-pilot")
     parser.add_argument("stage", choices=["screen", "select", "deepdive", "score", "actions", "export"])
     args = parser.parse_args()
     stage = {"screen": run_screen, "select": run_select, "deepdive": run_deepdive,
-             "score": run_score, "actions": run_actions}.get(args.stage)
+             "score": run_score, "actions": run_actions, "export": run_export}.get(args.stage)
     if stage is None:
         raise SystemExit(f"stage not implemented yet: {args.stage}")
     stage()
