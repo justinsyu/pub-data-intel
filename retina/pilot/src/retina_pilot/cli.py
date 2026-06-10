@@ -38,8 +38,24 @@ def run_screen(outdir: Path = OUT_DIR) -> pd.DataFrame:
     assert metrics["svi"].notna().mean() > 0.9 or len(metrics) < 10, "SVI join coverage below 90%"
 
     units = geo_frame.assign_units(counties, xwalk)
-    unit_metrics = geo_frame.aggregate_to_units(units, metrics.dropna(subset=["pop65", "svi", "ma_pct"]))
-    rucc_unit = units.merge(rucc, on="fips").groupby("unit_id")["rucc"].max().reset_index()
+
+    # CT exclusion: the ZCTA-county relationship file (rel2020) encodes Connecticut using
+    # legacy county FIPS (09001-09015), but all other federal files (gazetteer 2024, NBER
+    # CBSA crosswalk 2023, PEP cc-est2023, SVI 2022, RUCC 2023, enrollment) use the 2022
+    # planning-region FIPS (09110-09190). This vintage mismatch causes every CT provider
+    # ZIP to map to a legacy FIPS that joins to nothing in the metrics table, making all
+    # CT retina_providers = 0 regardless of actual supply. Excluding CT avoids selecting
+    # pilot sites on an artifact. A proper fix requires a ZIP-to-planning-region crosswalk
+    # that does not yet exist in this pipeline.
+    ct_units = units[units["state"] == "CT"]["unit_id"].unique()
+    print(
+        f"CT excluded from screen pool: county-equivalent vintage mismatch across federal files "
+        f"({len(ct_units)} units, {(units['state'] == 'CT').sum()} counties excluded)"
+    )
+    units_screen = units[units["state"] != "CT"]
+
+    unit_metrics = geo_frame.aggregate_to_units(units_screen, metrics.dropna(subset=["pop65", "svi", "ma_pct"]))
+    rucc_unit = units_screen.merge(rucc, on="fips").groupby("unit_id")["rucc"].max().reset_index()
     unit_metrics = unit_metrics.merge(rucc_unit, on="unit_id", how="left")
     scored = screen_score_mod.score_screen(unit_metrics)
 
