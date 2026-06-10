@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retina Access and Evidence Action Pilot</title>
+  <style>
+    :root { --ink: #17201b; --muted: #59655e; --paper: #fbfaf4; --line: #d9ded5; --accent: #245f65; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, "Segoe UI", Arial, sans-serif; background: var(--paper); color: var(--ink); }
+    header { padding: 18px 24px; border-bottom: 1px solid var(--line); }
+    h1 { margin: 0; font-size: 1.3rem; }
+    nav { display: flex; gap: 8px; padding: 10px 24px; border-bottom: 1px solid var(--line); }
+    nav button { padding: 8px 14px; border: 1px solid var(--line); background: #fff; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    nav button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    main { padding: 18px 24px; }
+    .view { display: none; }
+    .view.active { display: block; }
+    #map-chart { width: 100%; height: 640px; }
+    #radar-chart { width: 100%; height: 520px; }
+    select { padding: 6px 10px; font-size: 1rem; margin-bottom: 12px; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9rem; background: #fff; }
+    th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; }
+    .role { font-weight: 700; color: var(--accent); text-transform: uppercase; font-size: 0.75rem; }
+    .muted { color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <header><h1>Retina Access and Evidence Action Pilot (Wet AMD)</h1></header>
+  <nav>
+    <button data-view="map" class="active">National Screen</button>
+    <button data-view="scorecards">Scorecards</button>
+    <button data-view="detail">Geography Detail</button>
+    <button data-view="methods">Methods</button>
+  </nav>
+  <main>
+    <div id="view-map" class="view active"><div id="map-chart"></div></div>
+    <div id="view-scorecards" class="view"><div id="radar-chart"></div><div id="score-table"></div></div>
+    <div id="view-detail" class="view">
+      <select id="geo-select"></select>
+      <div id="detail-content"></div>
+    </div>
+    <div id="view-methods" class="view"><div id="methods-content" class="panel"></div></div>
+  </main>
+  <script src="vendor/echarts.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
