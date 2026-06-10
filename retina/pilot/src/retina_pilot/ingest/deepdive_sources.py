@@ -3,6 +3,7 @@ import io
 from pathlib import Path
 
 import pandas as pd
+import requests
 
 from retina_pilot import codes, sources
 from retina_pilot.ingest import cms_api
@@ -26,6 +27,10 @@ def parse_qdd(rows: list[dict]) -> pd.DataFrame:
     cols = list(df.columns)
     spndng_col = _latest_year_col(cols, "Tot_Spndng")
     clms_col = _latest_year_col(cols, "Tot_Clms")
+    spndng_year = spndng_col.rsplit("_", 1)[-1] if spndng_col != "Tot_Spndng" else None
+    clms_year = clms_col.rsplit("_", 1)[-1] if clms_col != "Tot_Clms" else None
+    if spndng_year is not None and clms_year is not None and spndng_year != clms_year:
+        raise ValueError(f"QDD vintage mismatch: {spndng_col} vs {clms_col}")
     return pd.DataFrame({
         "hcpcs": df["HCPCS_Cd"],
         "spending": pd.to_numeric(df[spndng_col], errors="coerce"),
@@ -62,12 +67,12 @@ def load_340b() -> pd.DataFrame:
     empty = pd.DataFrame(columns=["ce_id", "entity_name", "state", "zip5"])
     try:
         return parse_340b(cached_get(sources.URLS["hrsa_340b_ce"]))
-    except Exception:
+    except requests.RequestException:
         pass
     local = sorted(HRSA_LOCAL_DIR.glob("*.csv"))
     if local:
         return parse_340b(local[-1].read_bytes())
-    print("340B: no data — download the covered-entity daily report from https://340bopais.hrsa.gov/reports into data/cache/hrsa/")
+    print("340B: no data; download the covered-entity daily report from https://340bopais.hrsa.gov/reports into data/cache/hrsa/")
     return empty
 
 
@@ -85,6 +90,7 @@ def fetch_retina_studies(statuses=("RECRUITING", "ACTIVE_NOT_RECRUITING", "ENROL
     studies, seen = [], set()
     for cond in RETINA_CONDITIONS:
         token = None
+        tokens_seen = set()
         while True:
             params = {"query.cond": cond, "filter.overallStatus": "|".join(statuses),
                       "pageSize": 100}
@@ -97,8 +103,9 @@ def fetch_retina_studies(statuses=("RECRUITING", "ACTIVE_NOT_RECRUITING", "ENROL
                     seen.add(nct)
                     studies.append(s)
             token = payload.get("nextPageToken")
-            if not token:
+            if not token or token in tokens_seen:
                 break
+            tokens_seen.add(token)
     return studies
 
 
