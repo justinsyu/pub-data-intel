@@ -16,11 +16,12 @@ def parse_enrollment(rows: list[dict]) -> pd.DataFrame:
     df = df[df[COL_FIPS].astype(str).str.len() == 5]
     tot = pd.to_numeric(df[COL_TOT], errors="coerce")
     ma = pd.to_numeric(df[COL_MA], errors="coerce")
+    ma_pct = (100 * ma / tot.replace(0, float("nan"))).round(1)
     out = pd.DataFrame({
         "fips": df[COL_FIPS].astype(str),
         "medicare_benes": tot,
         "ma_benes": ma,
-        "ma_pct": (100 * ma / tot).round(1),
+        "ma_pct": ma_pct,
     })
     return out.dropna().reset_index(drop=True)
 

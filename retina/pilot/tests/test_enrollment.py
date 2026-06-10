@@ -15,3 +15,12 @@ def test_parse_enrollment_rows():
     row = df.iloc[0]
     assert row["fips"] == "01001"
     assert row["ma_pct"] == 41.7
+
+
+def test_parse_enrollment_zero_total_dropped():
+    rows = [
+        {"BENE_FIPS_CD": "01001", "TOT_BENES": "0", "MA_AND_OTH_BENES": "500",
+         "BENE_GEO_LVL": "County", "MONTH": "Year", "YEAR": "2024"},
+    ]
+    df = enr.parse_enrollment(rows)
+    assert df.empty
