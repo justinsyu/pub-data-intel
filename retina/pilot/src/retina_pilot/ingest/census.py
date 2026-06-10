@@ -67,23 +67,44 @@ def parse_acs_pop65(payload: list[list[str]]) -> pd.DataFrame:
     })
 
 
+def parse_popest_agesex(raw: bytes) -> pd.DataFrame:
+    """Parse Census PEP county age-sex file (keyless fallback for ACS pop65).
+
+    Keeps only rows for the most recent estimate year (max YEAR value).
+    YEAR values: 1=4/1/2020 (census), 2=7/1/2020, 3=7/1/2021, 4=7/1/2022, 5=7/1/2023.
+    Columns used: STATE, COUNTY, POPESTIMATE, AGE65PLUS_TOT.
+    """
+    df = pd.read_csv(io.BytesIO(raw), dtype=str, encoding="latin-1")
+    df["YEAR"] = pd.to_numeric(df["YEAR"], errors="coerce")
+    df = df[df["YEAR"] == df["YEAR"].max()]
+    return pd.DataFrame({
+        "fips": df["STATE"].str.zfill(2) + df["COUNTY"].str.zfill(3),
+        "pop_total": pd.to_numeric(df["POPESTIMATE"], errors="coerce").astype("Int64"),
+        "pop65": pd.to_numeric(df["AGE65PLUS_TOT"], errors="coerce").astype("Int64"),
+    }).dropna().reset_index(drop=True)
+
+
 def load_pop65() -> pd.DataFrame:
     params = {"get": "NAME," + ",".join(ACS_VARS), "for": "county:*"}
     key = os.environ.get("CENSUS_API_KEY")
     if key:
         params["key"] = key
-    raw = cached_get(sources.URLS["census_acs5"], params)
-    # The Census ACS API returns an HTML error page when no key is provided or the
-    # key is invalid. Detect this and surface a clear message rather than a JSON
-    # parse error.
-    if raw.lstrip()[:1] != b"[":
-        raise RuntimeError(
-            "Census ACS API returned a non-JSON response (likely missing or invalid key). "
-            "Set the CENSUS_API_KEY environment variable. "
-            "Register at https://api.census.gov/data/key_signup.html\n"
-            f"Response preview: {raw[:200]!r}"
-        )
-    return parse_acs_pop65(json.loads(raw))
+    try:
+        raw = cached_get(sources.URLS["census_acs5"], params)
+        # The Census ACS API returns an HTML error page when no key is provided or the
+        # key is invalid. Detect this and surface a clear message rather than a JSON
+        # parse error.
+        if raw.lstrip()[:1] != b"[":
+            raise RuntimeError(
+                "Census ACS API returned a non-JSON response (likely missing or invalid key). "
+                "Set the CENSUS_API_KEY environment variable. "
+                "Register at https://api.census.gov/data/key_signup.html\n"
+                f"Response preview: {raw[:200]!r}"
+            )
+        return parse_acs_pop65(json.loads(raw))
+    except RuntimeError:
+        print("pop65: using Census PEP fallback (no CENSUS_API_KEY)")
+        return parse_popest_agesex(cached_get(sources.URLS["census_popest_agesex"]))
 
 
 def load_zcta_county() -> pd.DataFrame:

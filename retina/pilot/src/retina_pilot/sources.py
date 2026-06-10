@@ -14,6 +14,11 @@ URLS = {
     # Census ACS 5-year API: https://www.census.gov/data/developers/data-sets/acs-5year.html
     # Base URL returns 404 without query params (?get=...&for=...); reachable with params
     "census_acs5": "https://api.census.gov/data/2023/acs/acs5",
+    # Census Population Estimates (PEP) county age-sex file (keyless fallback for ACS):
+    # https://www.census.gov/data/datasets/time-series/demo/popest/2020s-counties-detail.html
+    # YEAR values: 1=4/1/2020 (census), 2=7/1/2020, 3=7/1/2021, 4=7/1/2022, 5=7/1/2023
+    # Columns used: STATE, COUNTY, POPESTIMATE, AGE65PLUS_TOT
+    "census_popest_agesex": "https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/asrh/cc-est2023-agesex-all.csv",
     # Census ZCTA-county relationship: https://www.census.gov/geographies/reference-files/time-series/geo/relationship-files.html
     "census_zcta_county_rel": "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_county20_natl.txt",
     # CDC/ATSDR SVI: https://www.atsdr.cdc.gov/place-health/php/svi/svi-data-documentation-download.html
