@@ -11,6 +11,10 @@ WEIGHTS = {d: 1 / len(DIMENSIONS) for d in DIMENSIONS}
 
 DRUG_CODES = set(codes.ALL_DRUG_HCPCS)
 BIOSIM = set(codes.ANTIVEGF_BIOSIMILAR_HCPCS)
+# Named locally for readability; both values are members of codes.PROCEDURE_HCPCS
+# (the verified procedure code set in codes.py).
+INJECTION_CODE = "67028"
+OCT_CODE = "92134"
 # MCD export article_id is the bare number ("52451"); codes.POLICY_ANCHOR_ARTICLE
 # carries the display "A" prefix, so strip it before any anchor comparison.
 _ANCHOR_BARE = codes.POLICY_ANCHOR_ARTICLE.removeprefix("A")
@@ -32,9 +36,9 @@ def score_dimensions(selected, providers, ce_340b, trials, payments, affiliation
     """
     df = pd.DataFrame(selected)
 
-    inj = providers[providers["hcpcs"] == "67028"].groupby("unit_id")["services"].sum()
-    oct_ = providers[providers["hcpcs"] == "92134"].groupby("unit_id")["services"].sum()
-    injectors = providers[providers["hcpcs"] == "67028"].groupby("unit_id")["npi"].nunique()
+    inj = providers[providers["hcpcs"] == INJECTION_CODE].groupby("unit_id")["services"].sum()
+    oct_ = providers[providers["hcpcs"] == OCT_CODE].groupby("unit_id")["services"].sum()
+    injectors = providers[providers["hcpcs"] == INJECTION_CODE].groupby("unit_id")["npi"].nunique()
     drug = providers[providers["hcpcs"].isin(DRUG_CODES)]
     drug_services = drug.groupby("unit_id")["services"].sum()
     biosim_services = drug[drug["hcpcs"].isin(BIOSIM)].groupby("unit_id")["services"].sum()
@@ -56,7 +60,7 @@ def score_dimensions(selected, providers, ce_340b, trials, payments, affiliation
 
     hosp_npis = set(affiliations.loc[affiliations["facility_type"].str.contains(
         "Hospital", case=False, na=False), "npi"]) if not affiliations.empty else set()
-    inj_by_unit = providers[providers["hcpcs"] == "67028"].groupby("unit_id")["npi"].agg(set)
+    inj_by_unit = providers[providers["hcpcs"] == INJECTION_CODE].groupby("unit_id")["npi"].agg(set)
     df["hosp_affil_share"] = df["unit_id"].map(
         lambda u: (len(inj_by_unit.get(u, set()) & hosp_npis) / len(inj_by_unit.get(u, set())))
         if len(inj_by_unit.get(u, set())) else 0.0)

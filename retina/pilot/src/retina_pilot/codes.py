@@ -16,7 +16,7 @@ PROCEDURE_HCPCS = {
 }
 
 ANTIVEGF_ORIGINATOR_HCPCS = ["J0178", "J0177", "J2778", "J2777", "J0179"]
-ANTIVEGF_BIOSIMILAR_HCPCS = ["Q5124", "Q5128", "Q5147"]
+ANTIVEGF_BIOSIMILAR_HCPCS = ["Q5124", "Q5128", "Q5147", "Q5149"]
 GA_COMPLEMENT_HCPCS = ["J2781", "J2782"]
 ALL_DRUG_HCPCS = ANTIVEGF_ORIGINATOR_HCPCS + ANTIVEGF_BIOSIMILAR_HCPCS + GA_COMPLEMENT_HCPCS
 
@@ -29,6 +29,7 @@ DRUG_LABELS = {
     "Q5124": "ranibizumab-nuna (Byooviz)",
     "Q5128": "ranibizumab-eqrn (Cimerli)",
     "Q5147": "aflibercept-ayyh (Pavblu)",
+    "Q5149": "aflibercept-abzv (Enzeevu)",
     "J2781": "pegcetacoplan (Syfovre)",
     "J2782": "avacincaptad pegol (Izervay)",
 }

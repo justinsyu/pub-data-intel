@@ -158,7 +158,10 @@ def run_export(outdir: Path = OUT_DIR) -> None:
         trials=pd.read_parquet(outdir / "deepdive_trials.parquet"),
         actions=json.loads((outdir / "actions.json").read_text()),
         meta={"generated": str(date.today()), "acs_vintage": "Census PEP 2023 county age-sex estimates (ACS API fallback)",
-              "sources_note": "All data from official public sources; see the project spec for the registry."},
+              "sources_note": "All data from official public sources; see the project spec for the registry. "
+                              "Screen score averages four equal-weighted percentile ranks: population 65 and over, "
+                              "SVI, MA penetration, and inverse retina-provider supply. The trials and KOL dimension "
+                              "counts active trial sites only; investigator and industry-payment signals are not yet scored."},
     )
 
 

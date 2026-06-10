@@ -21,6 +21,8 @@ uv run pytest -q                            # test suite (56 tests)
 
 All HTTP responses are disk-cached under `data/cache/`, so reruns are incremental and fast (the full pipeline replays from cache in under 15 seconds). Outputs land in `data/out/` (parquet + JSON) and `dashboard/data/` (JSON).
 
+The `duckdb` dependency is included for output inspection (querying the parquet files in `data/out/`); it is not used by the pipeline stages themselves.
+
 To view the dashboard:
 
 ```
@@ -47,6 +49,8 @@ Then open http://localhost:8765. The dashboard is fully static (no backend); it 
 | Medicare Coverage Database (MCD) | Retina-relevant LCDs and articles per MAC | Weekly current_article export (direct download) | Retrieved 2026-06-10; latest article update observed 2026-05-29 |
 | HRSA 340B OPAIS | Covered entities (site-of-care signal) | Manual download required | Gap in this run (see below) |
 
+Note: quarterly ASP drug pricing (the CMS Part B drug ASP files) was descoped from this phase; price context comes only from QDD spending. See known limitations.
+
 ## Manual-download notes
 
 - **MCD**: the MCD website gates downloads behind a license click-through, but the weekly export zips on downloads.cms.gov respond without a session, so the pipeline now self-fetches the current article export. Operator override: place manually downloaded `current_article.zip` / `current_lcd.zip` into `data/cache/mcd/` and the loader uses them first.
@@ -69,4 +73,6 @@ Then open http://localhost:8765. The dashboard is fully static (no backend); it 
 - **Data lag**: MUPPHY and Open Payments lag the present by 1-2 years.
 - **Ecological measures**: SVI, MA penetration, and other area-level measures describe geographies, not individual providers or patients.
 - **Commercial economics deferred**: payer machine-readable-file (MRF) processing is out of scope for this phase; commercial procedure economics appear as a recorded data gap.
+- **ASP pricing deferred**: quarterly ASP drug pricing (the CMS Part B drug ASP files) was descoped from this phase; price context comes only from QDD national spending per HCPCS code. Ingesting the quarterly ASP files is an explicit deferred item.
+- **Trials/KOL dimension is site-count only**: the trials_kol dimension currently uses trial-site counts only; investigator names are not extracted from ClinicalTrials.gov records, and Open Payments amounts are collected but not scored. Both are future enhancements.
 - **Policy dimension is pool-constant**: all 10 geographies share the same MCD article counts at the jurisdiction level in this run (policy score 75.0 for all), pending per-MAC contractor-level differentiation.
