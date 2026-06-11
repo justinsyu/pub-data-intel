@@ -7,3 +7,5 @@ __pycache__/
 .venv/
 *.duckdb
 *.log
+*.duckdb.wal
+*.duckdb.tmp/
