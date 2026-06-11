@@ -22,7 +22,7 @@ def load_all(raw_dir: Path, out_dir: Path, bounds: dict | None = None) -> dict[s
                 SELECT * FROM read_csv(
                     '{path.as_posix()}', delim='|', header=true,
                     columns={{{cols}}}, encoding='{layout.encoding}',
-                    all_varchar=true
+                    all_varchar=true, quote='', auto_detect=false
                 )
             ) TO '{out.as_posix()}' (FORMAT PARQUET)
             """

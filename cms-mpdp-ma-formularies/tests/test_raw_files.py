@@ -13,7 +13,7 @@ def make_raw_dir(tmp_path):
         "plan information  20260531.txt": (
             "CONTRACT_ID|PLAN_ID|SEGMENT_ID|CONTRACT_NAME|PLAN_NAME|FORMULARY_ID|PREMIUM|DEDUCTIBLE|MA_REGION_CODE|PDP_REGION_CODE|STATE|COUNTY_CODE|SNP|PLAN_SUPPRESSED_YN\n"
             "H0028|007|000|CHA HMO, INC.|Humana Gold Plus \xe9|00026408|35.60|615| | |NE|28100|2|N\n"
-            "S5601|001|000|PDP ORG|Some PDP|00026409|12.30|0| |22| | |0|N\n"
+            "S5601|001|000|PDP ORG|\"Some GOLD PDP\"|00026409|12.30|0| |22| | |0|N\n"
         ),
         "basic drugs formulary file  20260531.txt": (
             "FORMULARY_ID|FORMULARY_VERSION|CONTRACT_YEAR|RXCUI|NDC|TIER_LEVEL_VALUE|QUANTITY_LIMIT_YN|QUANTITY_LIMIT_AMOUNT|QUANTITY_LIMIT_DAYS|PRIOR_AUTHORIZATION_YN|STEP_THERAPY_YN|SELECTED_DRUG_YN\n"
@@ -66,6 +66,17 @@ def test_load_all_writes_seven_parquets(tmp_path):
     ).df()
     assert list(df.columns) == list(layouts.LAYOUTS["plan_info"].columns)
     assert "\xe9" in df["PLAN_NAME"][0], "latin-1 byte must round-trip"
+
+
+def test_load_all_preserves_literal_quotes(tmp_path):
+    raw = make_raw_dir(tmp_path)
+    out = tmp_path / "out"
+    raw_files.load_all(raw, out, bounds=TEST_BOUNDS)
+    con = duckdb.connect()
+    df = con.execute(
+        f"SELECT * FROM read_parquet('{(out / 'raw_plan_info.parquet').as_posix()}')"
+    ).df()
+    assert df["PLAN_NAME"][1] == '"Some GOLD PDP"', "quotes must be literal, not CSV quoting"
 
 
 def test_load_all_bounds_violation_raises(tmp_path):
