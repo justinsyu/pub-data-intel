@@ -1,3 +1,5 @@
+import pytest
+
 from mpdp_formulary.ingest import http_cache
 
 
@@ -32,3 +34,18 @@ def test_fetch_distinct_urls_distinct_files(tmp_path, monkeypatch):
     b = http_cache.fetch("https://example.org/b", tmp_path)
     assert a != b
     assert len(list(tmp_path.iterdir())) == 2
+
+
+def test_fetch_http_error_is_not_cached(tmp_path, monkeypatch):
+    class ErrorResponse:
+        content = b"server error page"
+
+        def raise_for_status(self):
+            raise RuntimeError("HTTP 500")
+
+    monkeypatch.setattr(
+        http_cache.requests, "get", lambda url, timeout: ErrorResponse()
+    )
+    with pytest.raises(RuntimeError):
+        http_cache.fetch("https://example.org/err", tmp_path)
+    assert list(tmp_path.iterdir()) == [], "failed response must not be cached"
