@@ -1,0 +1,9 @@
+*.zip
+extracted/
+data/cache/
+data/out/
+dashboard/data/
+__pycache__/
+.venv/
+*.duckdb
+*.log
