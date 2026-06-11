@@ -1,3 +1,5 @@
+import io
+
 import pandas as pd
 import pytest
 
@@ -6,6 +8,34 @@ from mpdp_formulary.ingest import rxnorm
 
 def conso(rows):
     return pd.DataFrame(rows, columns=["RXCUI", "SAB", "TTY", "STR", "SUPPRESS"])
+
+
+def rrf_line(rxcui, sab, tty, s, suppress):
+    f = [""] * 19
+    f[0], f[11], f[12], f[14], f[16] = rxcui, sab, tty, s, suppress
+    return "|".join(f) + "\n"
+
+
+def test_read_rrf_preserves_quotes_and_na_strings():
+    text = (rrf_line("100", "RXNORM", "SCD", '"Brandy" 5 MG Oral Tablet', "N")
+            + rrf_line("101", "RXNORM", "SCD", "NA", "N"))
+    df = rxnorm._read_rrf(io.StringIO(text))
+    assert list(df.columns) == ["RXCUI", "SAB", "TTY", "STR", "SUPPRESS"]
+    assert df.loc[0, "STR"] == '"Brandy" 5 MG Oral Tablet'
+    assert df.loc[1, "STR"] == "NA"
+
+
+def test_build_names_skips_rxnav_when_misses_exceed_cap():
+    calls = []
+
+    def stub(rxcui):
+        calls.append(rxcui)
+        return (None, "")
+
+    df = conso([])
+    with pytest.raises(ValueError, match="match rate"):
+        rxnorm.build_name_table([str(i) for i in range(1000)], df, rxnav=stub)
+    assert calls == [], "doomed run must not hammer RxNav"
 
 
 def test_build_names_prefers_primary_tty():

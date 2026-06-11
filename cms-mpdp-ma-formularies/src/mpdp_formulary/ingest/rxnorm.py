@@ -1,4 +1,5 @@
 """Resolve RXCUIs to names via RxNorm Prescribable Content, RxNav fallback."""
+import csv
 import io
 import json
 import zipfile
@@ -22,6 +23,17 @@ FALLBACK_TTYS = ("SCDG", "SBDG", "SCDC", "SBDC", "SCDF", "SBDF", "MIN", "PIN",
 GENERIC_TTYS = {"SCD", "GPCK", "SCDG", "SCDC", "SCDF", "IN", "MIN", "PIN"}
 BRAND_TTYS = {"SBD", "BPCK", "SBDG", "SBDC", "SBDF", "BN"}
 MIN_MATCH_RATE = 0.99
+# More misses than this means the conso table is broken; the match-rate gate
+# will raise anyway, so do not spend one HTTP call per missing RXCUI.
+MAX_RXNAV_LOOKUPS = 500
+
+
+def _read_rrf(f) -> pd.DataFrame:
+    return pd.read_csv(
+        f, sep="|", header=None, names=RXNCONSO_COLS, dtype=str,
+        usecols=["RXCUI", "SAB", "TTY", "STR", "SUPPRESS"],
+        quoting=csv.QUOTE_NONE, keep_default_na=False,
+    )
 
 
 def load_rxnconso(cache_dir: Path) -> pd.DataFrame:
@@ -30,10 +42,7 @@ def load_rxnconso(cache_dir: Path) -> pd.DataFrame:
     with zipfile.ZipFile(io.BytesIO(raw)) as zf:
         member = next(n for n in zf.namelist() if n.upper().endswith("RXNCONSO.RRF"))
         with zf.open(member) as f:
-            df = pd.read_csv(
-                f, sep="|", header=None, names=RXNCONSO_COLS, dtype=str,
-                usecols=["RXCUI", "SAB", "TTY", "STR", "SUPPRESS"],
-            )
+            df = _read_rrf(f)
     return df
 
 
@@ -70,7 +79,7 @@ def build_name_table(rxcuis, conso: pd.DataFrame, rxnav) -> tuple[pd.DataFrame, 
                 resolved[row.RXCUI] = (row.STR, row.TTY)
 
     missing = [r for r in wanted if r not in resolved]
-    if rxnav is not None:
+    if rxnav is not None and len(missing) <= MAX_RXNAV_LOOKUPS:
         for rxcui in missing:
             name, tty = rxnav(rxcui)
             if name:
