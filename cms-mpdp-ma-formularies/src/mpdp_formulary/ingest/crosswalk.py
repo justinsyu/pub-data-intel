@@ -9,6 +9,7 @@ prefers the row whose raw name ends in "County".
 import csv
 import io
 import re
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -18,12 +19,13 @@ from . import http_cache
 CENSUS_COUNTY_URL = (
     "https://www2.census.gov/geo/docs/reference/codes2020/national_county2020.txt"
 )
-MIN_MATCH_RATE = 0.97
+MIN_MATCH_RATE = 0.98
 
 STATE_ABBREV = {
     "ALABAMA": "AL", "ALASKA": "AK", "ARIZONA": "AZ", "ARKANSAS": "AR",
     "CALIFORNIA": "CA", "COLORADO": "CO", "CONNECTICUT": "CT", "DELAWARE": "DE",
-    "DISTRICT OF COLUMBIA": "DC", "FLORIDA": "FL", "GEORGIA": "GA",
+    "DISTRICT OF COLUMBIA": "DC", "WASHINGTON D C": "DC",
+    "FLORIDA": "FL", "GEORGIA": "GA",
     "HAWAII": "HI", "IDAHO": "ID", "ILLINOIS": "IL", "INDIANA": "IN",
     "IOWA": "IA", "KANSAS": "KS", "KENTUCKY": "KY", "LOUISIANA": "LA",
     "MAINE": "ME", "MARYLAND": "MD", "MASSACHUSETTS": "MA", "MICHIGAN": "MI",
@@ -47,7 +49,9 @@ _DESIGNATORS = (
 
 
 def _norm(name: str) -> str:
-    s = re.sub(r"[^A-Z0-9 ]", " ", str(name).upper())
+    s = unicodedata.normalize("NFKD", str(name))
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = re.sub(r"[^A-Z0-9 ]", " ", s.upper())
     return re.sub(r"\s+", " ", s).strip()
 
 
@@ -77,11 +81,13 @@ def build(geo_df: pd.DataFrame, census_text: str,
 
     exact = {}      # (state_abbrev, norm_name) -> fips
     stripped = {}   # (state_abbrev, stripped_name) -> fips, county-designated wins
+    compact = {}    # (state_abbrev, stripped name minus spaces) -> fips
     for row in census.itertuples():
         exact[(row.STATE, row.norm)] = row.fips
-        key = (row.STATE, row.stripped)
-        if key not in stripped or row.is_county:
-            stripped[key] = row.fips
+        for d, key in ((stripped, (row.STATE, row.stripped)),
+                       (compact, (row.STATE, row.stripped.replace(" ", "")))):
+            if key not in d or row.is_county:
+                d[key] = row.fips
 
     records, matched = [], 0
     for row in geo_df.itertuples():
@@ -89,7 +95,10 @@ def build(geo_df: pd.DataFrame, census_text: str,
         name = _norm(row.COUNTY)
         fips = None
         if ab:
-            fips = exact.get((ab, name)) or stripped.get((ab, _strip_designator(name)))
+            fips = (exact.get((ab, name))
+                    or stripped.get((ab, name))
+                    or stripped.get((ab, _strip_designator(name)))
+                    or compact.get((ab, _strip_designator(name).replace(" ", ""))))
         if fips:
             matched += 1
         records.append({"county_code": row.COUNTY_CODE, "fips": fips})

@@ -54,3 +54,36 @@ def test_low_match_rate_raises():
     g = geo([("99999", "Alabama", "Nonesuch")])
     with pytest.raises(ValueError, match="match rate"):
         crosswalk.build(g, CENSUS_TEXT)
+
+
+def test_accent_folding_matches_diacritics():
+    census = ("STATE|STATEFP|COUNTYFP|COUNTYNS|COUNTYNAME|CLASSFP|FUNCSTAT\n"
+              "PR|72|021|01804495|Bayamón Municipio|H1|A\n")
+    g = geo([("40190", "Puerto Rico", "Bayamon")])
+    out, rate = crosswalk.build(g, census)
+    assert out.set_index("county_code")["fips"]["40190"] == "72021"
+    assert rate == 1.0
+
+
+def test_dc_statename_variant():
+    census = ("STATE|STATEFP|COUNTYFP|COUNTYNS|COUNTYNAME|CLASSFP|FUNCSTAT\n"
+              "DC|11|001|01702382|District of Columbia|H6|F\n")
+    g = geo([("09000", "Washington D.C.", "District of Columbia")])
+    out, _ = crosswalk.build(g, census)
+    assert out.set_index("county_code")["fips"]["09000"] == "11001"
+
+
+def test_unstripped_query_beats_island_stripping():
+    census = ("STATE|STATEFP|COUNTYFP|COUNTYNS|COUNTYNAME|CLASSFP|FUNCSTAT\n"
+              "IL|17|161|00422256|Rock Island County|H1|A\n")
+    g = geo([("14640", "Illinois", "Rock Island")])
+    out, _ = crosswalk.build(g, census)
+    assert out.set_index("county_code")["fips"]["14640"] == "17161"
+
+
+def test_compact_spacing_variant():
+    census = ("STATE|STATEFP|COUNTYFP|COUNTYNS|COUNTYNAME|CLASSFP|FUNCSTAT\n"
+              "IL|17|099|01784733|LaSalle County|H1|A\n")
+    g = geo([("14600", "Illinois", "La Salle")])
+    out, _ = crosswalk.build(g, census)
+    assert out.set_index("county_code")["fips"]["14600"] == "17099"
