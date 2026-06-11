@@ -25,8 +25,10 @@ CHANNEL_KEYS = ["pref", "nonpref", "mail_pref", "mail_nonpref"]
 
 
 def _clean(v):
-    if v is None:
+    if v is None or v is pd.NA:
         return None
+    if isinstance(v, list):
+        return [_clean(x) for x in v]
     if isinstance(v, float) and math.isnan(v):
         return None
     if isinstance(v, (pd.Timestamp,)):
@@ -111,10 +113,14 @@ def write_plan_shards(out_dir: Path, plan_keys: list[str], costs: pd.DataFrame,
                       insulin: pd.DataFrame, excluded: pd.DataFrame,
                       indications: pd.DataFrame) -> int:
     """costs/insulin carry a plan_key column plus the raw uppercase PUF columns
-    (VARCHAR; numeric parsing happens here). excluded and indications carry
-    contract_plan plus named drug columns (see write_drug_shards).
+    (VARCHAR; numeric parsing happens here). excluded must carry contract_plan,
+    plan_name, AND name plus the drug columns: plan shards emit name via
+    EXCLUDED_COLS while drug shards emit plan_name via EXCLUDED_BY_COLS.
+    indications carry contract_plan, rxcui, name, disease.
     """
     def num(v):
+        if isinstance(v, float) and math.isnan(v):
+            return None
         v = (v or "").strip() if isinstance(v, str) else v
         if v in (None, ""):
             return None
@@ -142,8 +148,9 @@ def write_plan_shards(out_dir: Path, plan_keys: list[str], costs: pd.DataFrame,
                 ]
             cost_rows.append({
                 "level": num(r.COVERAGE_LEVEL), "tier": num(r.TIER),
-                "days": num(r.DAYS_SUPPLY), "specialty": r.TIER_SPECIALTY_YN,
-                "ded_applies": r.DED_APPLIES_YN, "channels": channels,
+                "days": num(r.DAYS_SUPPLY),
+                "specialty": _clean(r.TIER_SPECIALTY_YN),
+                "ded_applies": _clean(r.DED_APPLIES_YN), "channels": channels,
             })
         ins_rows = []
         for r in ins_g.get(pk, pd.DataFrame()).itertuples():
