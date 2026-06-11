@@ -114,8 +114,7 @@ def stage_export() -> None:
     plans_sorted["formulary_idx"] = plans_sorted["formulary_id"].map(
         lambda f: fidx.get(f, -1))
     geo_states = raw["geo"][["COUNTY_CODE", "STATENAME"]].copy()
-    geo_states["state"] = geo_states["STATENAME"].str.upper().map(
-        crosswalk.STATE_ABBREV)
+    geo_states["state"] = geo_states["STATENAME"].map(crosswalk.state_abbrev)
     cs = bridge.merge(geo_states, left_on="county_code", right_on="COUNTY_CODE")
     states_map = (cs.dropna(subset=["state"]).groupby("plan_key")["state"]
                   .agg(lambda s: sorted(set(s))))
@@ -202,7 +201,7 @@ def stage_export() -> None:
          .merge(xwalk, left_on="COUNTY_CODE", right_on="county_code"))
     n_unmapped = int(g["fips"].isna().sum())
     g = g.dropna(subset=["fips"]).copy()
-    g["state"] = g["STATENAME"].str.upper().map(crosswalk.STATE_ABBREV)
+    g["state"] = g["STATENAME"].map(crosswalk.state_abbrev)
     pix = {pk: i for i, pk in enumerate(plans_sorted["plan_key"])}
     bplans = bridge.groupby("county_code")["plan_key"].agg(
         lambda s: sorted(pix[k] for k in set(s) if k in pix))

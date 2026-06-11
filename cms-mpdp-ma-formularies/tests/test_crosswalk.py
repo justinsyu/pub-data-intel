@@ -73,6 +73,12 @@ def test_dc_statename_variant():
     assert out.set_index("county_code")["fips"]["09000"] == "11001"
 
 
+def test_state_abbrev_normalizes_punctuation():
+    assert crosswalk.state_abbrev("Washington D.C.") == "DC"
+    assert crosswalk.state_abbrev("Alabama") == "AL"
+    assert crosswalk.state_abbrev("Nowhere Land") is None
+
+
 def test_unstripped_query_beats_island_stripping():
     census = ("STATE|STATEFP|COUNTYFP|COUNTYNS|COUNTYNAME|CLASSFP|FUNCSTAT\n"
               "IL|17|161|00422256|Rock Island County|H1|A\n")

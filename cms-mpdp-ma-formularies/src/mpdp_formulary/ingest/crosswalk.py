@@ -62,6 +62,11 @@ def _strip_designator(norm_name: str) -> str:
     return norm_name
 
 
+def state_abbrev(statename: str) -> str | None:
+    """USPS abbreviation for a state name as it appears in the PUF, or None."""
+    return STATE_ABBREV.get(_norm(statename))
+
+
 def fetch_census_counties(cache_dir: Path) -> str:
     return http_cache.fetch(CENSUS_COUNTY_URL, cache_dir).decode("utf-8")
 
