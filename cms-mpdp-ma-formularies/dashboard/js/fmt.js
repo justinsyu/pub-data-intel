@@ -3,8 +3,9 @@ const Fmt = {
   pct: v => v == null ? "n/a" : Number(v).toFixed(1) + "%",
   num: v => v == null ? "n/a" : Number(v).toLocaleString("en-US"),
   flag: b => b ? "Yes" : "No",
-  esc: s => String(s == null ? "" : s).replace(/[&<>"]/g,
-    c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])),
+  esc: s => String(s == null ? "" : s).replace(/[&<>"']/g,
+    c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
+           "'": "&#39;"}[c])),
   // Channel cell from [type, amt, min, max]: type 0/null = not offered,
   // 1 = copay in dollars, 2 = coinsurance as a fraction of drug cost.
   cost(ch) {
