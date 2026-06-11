@@ -28,6 +28,13 @@ def test_find_raw_file_missing_raises(tmp_path):
         layouts.find_raw_file(layouts.LAYOUTS["geo"], tmp_path)
 
 
+def test_find_raw_file_ambiguous_raises_value_error(tmp_path):
+    _touch(tmp_path, "geographic locator file 20260531.txt")
+    _touch(tmp_path, "geographic locator file 20260630.txt")
+    with pytest.raises(ValueError, match="ambiguous"):
+        layouts.find_raw_file(layouts.LAYOUTS["geo"], tmp_path)
+
+
 def test_validate_header_accepts_case_insensitive(tmp_path):
     layout = layouts.LAYOUTS["indication"]
     _touch(tmp_path, "indication based coverage formulary file  20260531.txt",

@@ -123,10 +123,14 @@ def find_raw_file(layout: Layout, raw_dir: Path = RAW_DIR) -> Path:
         and p.name.lower().startswith(layout.prefix)
         and "sample" not in p.name.lower()
     ]
-    if len(matches) != 1:
+    if not matches:
         raise FileNotFoundError(
-            f"{layout.key}: expected exactly 1 file with prefix {layout.prefix!r} "
-            f"in {raw_dir}, found {[p.name for p in matches]}"
+            f"{layout.key}: no file with prefix {layout.prefix!r} in {raw_dir}"
+        )
+    if len(matches) > 1:
+        raise ValueError(
+            f"{layout.key}: ambiguous, {len(matches)} files match prefix "
+            f"{layout.prefix!r} in {raw_dir}: {[p.name for p in matches]}"
         )
     return matches[0]
 
