@@ -5,6 +5,10 @@ window.MPDP = window.MPDP || {views: {}};
   async function show(name, arg) {
     nav.querySelectorAll("button").forEach(b =>
       b.classList.toggle("active", b.dataset.view === name));
+    root.querySelectorAll("[_echarts_instance_]").forEach(n => {
+      const c = echarts.getInstanceByDom(n);
+      if (c) c.dispose();
+    });
     root.innerHTML = "<p class='muted'>Loading…</p>";
     try {
       await MPDP.views[name].render(root, arg);
