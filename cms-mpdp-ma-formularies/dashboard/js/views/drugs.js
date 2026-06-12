@@ -44,7 +44,24 @@ window.MPDP = window.MPDP || {views: {}};
           <div id="dTable"></div>
         </div>
         <div id="dDetail"></div>`;
-      const tableEl = root.querySelector("#dTable");
+
+      const pager = Paginate.create({
+        container: root.querySelector("#dTable"),
+        pageSize: 50,
+        label: "drugs",
+        headHtml: `<tr>
+          <th>Drug</th><th>Type</th><th>Coverage</th>
+          <th>${Defs.abbr("PA")}</th><th>${Defs.abbr("ST")}</th><th>${Defs.abbr("QL")}</th>
+          <th>Excluding plans</th></tr>`,
+        rowHtml: d => `<tr class="click" data-rxcui="${Fmt.esc(d.rxcui)}">
+            <td>${Fmt.esc(d.name)}${d.selected
+              ? `<span class="badge" title="${Fmt.esc(Defs.tip("Negotiation-selected"))}">negotiation</span>` : ""}</td>
+            <td>${d.bg || ""}</td><td>${Fmt.pct(d.cov_pct)}</td>
+            <td>${Fmt.pct(d.pa_pct)}</td><td>${Fmt.pct(d.st_pct)}</td>
+            <td>${Fmt.pct(d.ql_pct)}</td><td>${Fmt.num(d.excl_plans)}</td></tr>`,
+        afterRender: container => container.querySelectorAll("tr[data-rxcui]").forEach(tr =>
+          tr.addEventListener("click", () => showDetail(tr.dataset.rxcui))),
+      });
 
       function draw() {
         const q = root.querySelector("#dSearch").value.trim().toLowerCase();
@@ -57,22 +74,8 @@ window.MPDP = window.MPDP || {views: {}};
           rows = rows.filter(d => d.excl_plans > 0);
         if (root.querySelector("#dSel").checked)
           rows = rows.filter(d => d.selected);
-        root.querySelector("#dCount").textContent =
-          `${Fmt.num(rows.length)} drugs` +
-          (rows.length > 200 ? ", showing first 200" : "");
-        tableEl.innerHTML = `<table><thead><tr>
-          <th>Drug</th><th>Type</th><th>Coverage</th><th>PA</th><th>ST</th>
-          <th>QL</th><th>Excluding plans</th></tr></thead><tbody>` +
-          rows.slice(0, 200).map(d =>
-            `<tr class="click" data-rxcui="${Fmt.esc(d.rxcui)}">
-              <td>${Fmt.esc(d.name)}${d.selected
-                ? '<span class="badge">negotiation</span>' : ""}</td>
-              <td>${d.bg || ""}</td><td>${Fmt.pct(d.cov_pct)}</td>
-              <td>${Fmt.pct(d.pa_pct)}</td><td>${Fmt.pct(d.st_pct)}</td>
-              <td>${Fmt.pct(d.ql_pct)}</td><td>${Fmt.num(d.excl_plans)}</td></tr>`
-          ).join("") + "</tbody></table>";
-        tableEl.querySelectorAll("tr[data-rxcui]").forEach(tr =>
-          tr.addEventListener("click", () => showDetail(tr.dataset.rxcui)));
+        root.querySelector("#dCount").textContent = `${Fmt.num(rows.length)} drugs match`;
+        pager.setRows(rows);
       }
       ["#dSearch", "#dBg", "#dExcl", "#dSel"].forEach(sel =>
         root.querySelector(sel).addEventListener("input", draw));
@@ -85,6 +88,7 @@ window.MPDP = window.MPDP || {views: {}};
           if (c) c.dispose();
         });
         el.innerHTML = "<p class='muted'>Loading drug detail…</p>";
+        el.scrollIntoView({behavior: "smooth", block: "start"});
         const [d, meta, plans] = await Promise.all(
           [Data.drug(id), Data.meta(), Data.plansIndex()]);
         const planByFidx = new Map();
@@ -104,7 +108,7 @@ window.MPDP = window.MPDP || {views: {}};
         el.innerHTML = `
           <h2>${Fmt.esc(d.name)}
             <span class="muted">RXCUI ${Fmt.esc(d.rxcui)}</span>
-            ${d.selected ? '<span class="badge">negotiation-selected</span>' : ""}
+            ${d.selected ? `<span class="badge" title="${Fmt.esc(Defs.tip("Negotiation-selected"))}">negotiation-selected</span>` : ""}
           </h2>
           <div class="grid2">
             <div class="panel"><h3>Tier placement across formularies</h3>
@@ -123,7 +127,7 @@ window.MPDP = window.MPDP || {views: {}};
           </div>
           <div class="panel">
             <h3>Formularies listing this drug (${fRows.length})</h3>
-            <table><thead><tr><th>Formulary</th><th>Tier</th><th>Restrictions</th>
+            <table><thead><tr><th>Formulary</th><th>${Defs.abbr("Tier")}</th><th>Restrictions</th>
               <th>QL amount / days</th><th>Plans using</th></tr></thead><tbody>` +
           fRows.map(r => `<tr><td>${r.fid}</td><td>${r.tier ?? "n/a"}</td>
               <td>${r.restr}</td>
@@ -131,8 +135,8 @@ window.MPDP = window.MPDP || {views: {}};
               <td>${Fmt.num(r.nPlans)}</td></tr>`).join("") +
           `</tbody></table></div>
           <div class="panel"><h3>Plans excluding this drug (${exRows.length})</h3>` +
-          (exRows.length ? `<table><thead><tr><th>Plan</th><th>Tier</th>
-              <th>PA</th><th>ST</th><th>QL</th><th>Capped</th></tr></thead><tbody>` +
+          (exRows.length ? `<table><thead><tr><th>Plan</th><th>${Defs.abbr("Tier")}</th>
+              <th>${Defs.abbr("PA")}</th><th>${Defs.abbr("ST")}</th><th>${Defs.abbr("QL")}</th><th>${Defs.abbr("Capped")}</th></tr></thead><tbody>` +
             exRows.map(r => `<tr>
               <td>${Fmt.esc(r.plan_name || r.contract_plan)}</td>
               <td>${r.tier ?? ""}</td><td>${Fmt.flag(r.pa)}</td>
@@ -145,7 +149,7 @@ window.MPDP = window.MPDP || {views: {}};
             d.indications.map(i =>
               `<li>${Fmt.esc(i.contract_plan)}: ${Fmt.esc(i.disease)}</li>`).join("") +
             "</ul></div>" : "");
-        el.scrollIntoView({behavior: "smooth"});
+        el.scrollIntoView({behavior: "smooth", block: "start"});
 
         const tierCounts = {};
         fRows.forEach(r => {

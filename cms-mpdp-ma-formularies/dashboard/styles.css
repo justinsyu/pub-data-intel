@@ -40,4 +40,14 @@ tr.click:hover { background: #f0f6fc; }
 .controls select { padding: 5px 8px; border: 1px solid #bcccdc;
                    border-radius: 4px; }
 a { color: #2680c2; }
+.pager { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+         margin-top: 10px; }
+.pager button { padding: 4px 12px; border: 1px solid #bcccdc; background: #fff;
+                border-radius: 4px; cursor: pointer; font-size: 13px; color: #1a1d23; }
+.pager button:hover:not(:disabled) { background: #f0f6fc; border-color: #2680c2; }
+.pager button:disabled { opacity: .45; cursor: default; }
+abbr[title] { text-decoration: underline dotted; cursor: help; }
+.glossary { margin: 0; }
+.glossary dt { font-weight: 600; margin-top: 8px; }
+.glossary dd { margin: 0 0 4px; color: #3c4858; }
 @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }

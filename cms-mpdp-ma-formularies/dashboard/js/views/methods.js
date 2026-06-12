@@ -10,6 +10,7 @@ MPDP.views.methods = {
         ${Fmt.esc(meta.contract_year)}. Drug names resolve through the RxNorm
         Current Prescribable Content release with an RxNav fallback for retired
         identifiers.</p></div>
+      <div class="panel"><h3>Glossary</h3>${Defs.glossaryHtml()}</div>
       <div class="panel"><h3>Grain and aggregation rules</h3><ul>
         <li>The basic formulary file carries one row per formulary and RXCUI
         with a single representative NDC; this dashboard reports at RXCUI
