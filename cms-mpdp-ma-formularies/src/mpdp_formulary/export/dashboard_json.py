@@ -188,5 +188,8 @@ def write_formulary_shards(out_dir: Path, formulary_drug_named: pd.DataFrame) ->
 
 
 def write_geo(out_dir: Path, geo: pd.DataFrame) -> None:
+    dupes = geo["fips"][geo["fips"].duplicated()].unique()
+    if len(dupes):
+        raise ValueError(f"geo export: duplicate fips rows: {list(dupes)[:5]}")
     _write(out_dir / "geo.json",
            {"cols": GEO_COLS, "rows": _rows(geo, GEO_COLS)})

@@ -208,6 +208,9 @@ def stage_export() -> None:
     g["plans"] = g["COUNTY_CODE"].map(bplans).apply(
         lambda v: v if isinstance(v, list) else [])
     g = g.rename(columns={"COUNTY": "name"})
+    g = (g.groupby("fips", as_index=False)
+         .agg(name=("name", "first"), state=("state", "first"),
+              plans=("plans", lambda s: sorted(set().union(*s)))))
     dashboard_json.write_geo(out, g[["fips", "name", "state", "plans"]])
     print(f"export: geo.json with {len(g):,} counties "
           f"({n_unmapped} SSA codes unmapped to FIPS)")

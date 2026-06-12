@@ -1,6 +1,7 @@
 import json
 
 import pandas as pd
+import pytest
 
 from mpdp_formulary.export import dashboard_json as dj
 
@@ -51,6 +52,15 @@ def test_write_geo_uses_plan_indexes(tmp_path):
     dj.write_geo(tmp_path, geo)
     obj = read(tmp_path / "geo.json")
     assert obj["rows"][0] == ["01001", "Autauga", "AL", [0, 2]]
+
+
+def test_write_geo_rejects_duplicate_fips(tmp_path):
+    geo = pd.DataFrame([
+        {"fips": "06037", "name": "Los Angeles", "state": "CA", "plans": [0]},
+        {"fips": "06037", "name": "Los Angeles", "state": "CA", "plans": [1]},
+    ])
+    with pytest.raises(ValueError, match="duplicate fips"):
+        dj.write_geo(tmp_path, geo)
 
 
 def test_nan_becomes_null(tmp_path):

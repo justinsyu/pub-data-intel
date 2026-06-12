@@ -80,6 +80,10 @@ window.MPDP = window.MPDP || {views: {}};
 
       async function showDetail(id) {
         const el = root.querySelector("#dDetail");
+        el.querySelectorAll("[_echarts_instance_]").forEach(n => {
+          const c = echarts.getInstanceByDom(n);
+          if (c) c.dispose();
+        });
         el.innerHTML = "<p class='muted'>Loading drug detail…</p>";
         const [d, meta, plans] = await Promise.all(
           [Data.drug(id), Data.meta(), Data.plansIndex()]);
