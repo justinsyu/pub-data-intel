@@ -37,6 +37,8 @@ MPDP.views.methods = {
         <li>Local MA plans (H contracts) list exact service-area counties;
         regional MA (R) and PDP (S) contracts are expanded from their CMS
         regions, so county-level precision differs by plan type.</li>
+        <li>Filters are per-view; there is no county-level filter, and the
+        Overview statistics are national and unfiltered.</li>
         <li>This is a single monthly snapshot; no trend analysis.</li>
         <li>Pharmacy network data (preferred pharmacies, dispensing fees) is
         not included in this version.</li></ul></div>`;

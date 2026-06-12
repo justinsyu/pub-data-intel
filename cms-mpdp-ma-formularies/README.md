@@ -81,5 +81,8 @@ county file into data/cache/; reruns are offline and fast.
 - Insulin cost panel shows the copay cap and coinsurance together; the
   beneficiary pays the lesser at point of sale.
 - Suppressed plans (19) keep identity rows; cost data is hidden.
+- Filters are per-view (plan explorer: type, SNP, state; drug explorer:
+  brand-generic, exclusion, negotiation status, map plan types). There is no
+  county-level filter, and Overview statistics are national and unfiltered.
 - Pharmacy networks (~22.5 GB) deferred; phase-2 candidates: preferred
   pharmacy density, dispensing fees, RxClass therapeutic class rollups.
