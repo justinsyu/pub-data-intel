@@ -95,18 +95,22 @@ window.MPDP = window.MPDP || {views: {}};
                 "</tbody></table>";
             }).join("");
 
+        const insCell = (cp, cn) => {
+          if (cp == null && cn == null) return "n/a";
+          if (cp != null && cn != null && cn > 0)
+            return `${Fmt.money(cp)} / ${Math.round(cn * 100)}%, lesser applies`;
+          if (cp != null) return Fmt.money(cp);
+          return Math.round(cn * 100) + "%";
+        };
         const insTable = suppressed || !shard.insulin.length ? "" :
-          `<div class="panel"><h3>Insulin cost sharing</h3>
+          `<div class="panel"><h3>Insulin cost sharing (lesser of copay and coinsurance applies)</h3>
             <table><thead><tr><th>Tier</th><th>Supply</th>
               <th>Preferred retail</th><th>Standard retail</th>
               <th>Preferred mail</th><th>Standard mail</th></tr></thead><tbody>` +
           shard.insulin.map(i => `<tr>
             <td>${i.tier ?? "std"}</td>
             <td>${Fmt.esc(meta.days_supply_labels[i.days] || i.days)}</td>
-            ${[0, 1, 2, 3].map(k => `<td>${
-              i.copay[k] != null ? Fmt.money(i.copay[k])
-              : i.coin[k] != null ? Math.round(i.coin[k] * 100) + "%"
-              : "n/a"}</td>`).join("")}</tr>`).join("") +
+            ${[0, 1, 2, 3].map(k => `<td>${insCell(i.copay[k], i.coin[k])}</td>`).join("")}</tr>`).join("") +
           "</tbody></table></div>";
 
         const ex = Data.table(shard.excluded);
