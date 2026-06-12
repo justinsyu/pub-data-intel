@@ -1,6 +1,7 @@
 window.MPDP = window.MPDP || {views: {}};
 (() => {
   const picked = [];
+  let drawEpoch = 0;
   MPDP.views.compare = {
     async render(root) {
       const [meta, plans] = await Promise.all([Data.meta(), Data.plansIndex()]);
@@ -51,18 +52,27 @@ window.MPDP = window.MPDP || {views: {}};
           el.innerHTML = "<p class='muted'>Pick at least two plans to compare.</p>";
           return;
         }
-        const shards = await Promise.all(picked.map(p => Data.plan(p.plan_key)));
+        const epoch = ++drawEpoch;
+        const cur = picked.slice();
+        const shards = await Promise.all(cur.map(p => Data.plan(p.plan_key)));
+        if (epoch !== drawEpoch || !root.isConnected) return;
         const metric = (label, fn) => `<tr><th>${label}</th>` +
-          picked.map((p, i) => `<td>${fn(p, shards[i])}</td>`).join("") + "</tr>";
+          cur.map((p, i) => `<td>${fn(p, shards[i])}</td>`).join("") + "</tr>";
         const tierCost = (shard, tier) => {
           const c = shard.costs.find(c =>
             c.level === 1 && c.days === 1 && c.tier === tier);
-          return c ? Fmt.cost(c.channels.pref) : "n/a";
+          if (!c) return "n/a";
+          if (c.channels.pref[0]) return Fmt.cost(c.channels.pref);
+          if (c.channels.nonpref[0]) return Fmt.cost(c.channels.nonpref) + " (std)";
+          return "n/a";
         };
+        const tiers = [...new Set(shards.flatMap(s => s.costs
+          .filter(c => c.level === 1 && c.days === 1)
+          .map(c => c.tier)))].sort((a, b) => a - b);
         const exSets = shards.map(s => new Set(s.excluded.rows.map(r => r[0])));
         const shared = [...exSets[0]].filter(r => exSets.every(s => s.has(r))).length;
         el.innerHTML = `<div class="panel"><table>
-          <thead><tr><th>Metric</th>${picked.map(p =>
+          <thead><tr><th>Metric</th>${cur.map(p =>
             `<th>${Fmt.esc(p.plan_name)}</th>`).join("")}</tr></thead><tbody>` +
           metric("Type", p => meta.plan_type_labels[p.type] || p.type) +
           metric("SNP", p => meta.snp_labels[p.snp] || p.snp) +
@@ -73,11 +83,11 @@ window.MPDP = window.MPDP || {views: {}};
           metric("Step therapy share", p => Fmt.pct(p.st_pct)) +
           metric("Quantity limit share", p => Fmt.pct(p.ql_pct)) +
           metric("Excluded drugs", p => Fmt.num(p.n_excluded)) +
-          [1, 2, 3, 4, 5].map(t => metric(
-            `Tier ${t}, 30-day preferred retail (initial coverage)`,
+          tiers.map(t => metric(
+            `Tier ${t}, 30-day retail, initial coverage (std = standard network)`,
             (p, s) => tierCost(s, t))).join("") +
           `<tr><th>Excluded drugs shared by all selected</th>
-           <td colspan="${picked.length}">${shared}</td></tr>` +
+           <td colspan="${cur.length}">${shared}</td></tr>` +
           "</tbody></table></div>";
       }
 
