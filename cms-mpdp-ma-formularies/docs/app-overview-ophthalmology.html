@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Drug Coverage in Medicare Part D Plans: The MPDP Formulary Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Sans:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #142a4e;            /* CMS navy, headings */
+    --body: #232323;           /* body text */
+    --muted: rgba(20, 42, 78, 0.62);
+    --faint: rgba(20, 42, 78, 0.32);
+    --bg: #ffffff;
+    --warm: #f7f9fb;
+    --warm2: #eef2f6;
+    --accent: #2680c2;         /* CMS blue */
+    --accent-ink: #1a4480;     /* darker blue for text on white */
+    --black: #0b0b0b;
+    --line: rgba(20, 42, 78, 0.12);
+    --line-strong: rgba(20, 42, 78, 0.2);
+    --font-display: "Lora", Georgia, "Times New Roman", serif;
+    --font-body: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--body);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 820px; margin: 0 auto; padding: 4rem 1.75rem 5rem; }
+
+  /* ---- Header ---- */
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.85rem; border: 1px solid var(--line-strong); border-radius: 999px;
+    background: var(--warm); color: var(--ink);
+    font-family: var(--font-ui); font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .pill .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); }
+
+  h1 {
+    margin: 1.4rem 0 0; font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(3rem, 5vw, 3.6rem); line-height: 1.04; letter-spacing: -0.03em; color: var(--ink);
+  }
+  h1 .soft { color: var(--faint); }
+
+  .lead {
+    margin: 1.25rem 0 0; max-width: 44rem; color: var(--muted);
+    font-size: 1.02rem; line-height: 1.55; letter-spacing: -0.012em;
+  }
+  .meta {
+    margin: 0; padding-top: 1.25rem; border-top: 1px solid var(--line);
+    font-family: var(--font-ui); font-size: 0.82rem; color: var(--muted); letter-spacing: 0;
+  }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  /* ---- Cover page (everything before the first section) ---- */
+  .cover { display: flex; flex-direction: column; min-height: calc(100vh - 9rem); }
+  .cover .pill { align-self: flex-start; }
+  .cover-main { margin: auto 0; }
+
+  /* ---- Steps ---- */
+  .step { margin-top: 3.5rem; }
+  .step-head { display: flex; align-items: baseline; gap: 0.9rem; }
+  .badge {
+    flex: 0 0 auto; width: 2.1rem; height: 2.1rem; border-radius: 50%;
+    background: var(--black); color: #fff; display: grid; place-items: center;
+    font-family: var(--font-ui); font-size: 0.95rem; font-weight: 600; letter-spacing: 0;
+    transform: translateY(0.15rem);
+  }
+  .step-eyebrow {
+    font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-ink); margin: 0 0 0.35rem;
+  }
+  .step h2 {
+    margin: 0; font-family: var(--font-display); font-weight: 500;
+    font-size: clamp(1.5rem, 3.2vw, 2rem); line-height: 1.12; letter-spacing: -0.02em; color: var(--ink);
+  }
+  .step p.explain { margin: 1rem 0 0; color: var(--body); font-size: 1.05rem; }
+  .step p.explain + p.explain { margin-top: 0.7rem; }
+
+  /* ---- Inline emphasis ---- */
+  .explain code, code.mono {
+    font-family: var(--font-mono); font-size: 0.86em; background: var(--warm2);
+    padding: 0.05rem 0.32rem; border-radius: 4px; color: var(--accent-ink); letter-spacing: 0;
+  }
+  .lead, .explain, .closing p, figcaption, .meta, .callout p { text-wrap: pretty; }
+
+  /* ---- Data tables ---- */
+  .data-label {
+    font-family: var(--font-ui); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin: 1.6rem 0 0.5rem;
+  }
+  table.dtable {
+    width: 100%; border-collapse: collapse; margin: 0;
+    font-family: var(--font-ui); font-size: 0.86rem; letter-spacing: 0;
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  }
+  table.dtable thead th {
+    background: var(--warm); color: var(--ink); font-weight: 600; text-align: left;
+    padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--line-strong);
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  table.dtable td {
+    padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--line); color: var(--body);
+  }
+  table.dtable tbody tr:last-child td { border-bottom: 0; }
+  table.dtable td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.dtable td.drug { color: var(--ink); font-weight: 500; }
+  table.dtable .tag {
+    display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 0.05rem 0.45rem;
+    border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted);
+  }
+  table.dtable .tag.brand { color: #8a5a00; border-color: rgba(138,90,0,0.35); background: #fbf3e2; }
+  table.dtable .tag.generic { color: var(--accent-ink); border-color: rgba(38,128,194,0.35); background: #e9f2fb; }
+  .tnote { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.86rem; font-family: var(--font-ui); }
+  .tnote b { color: var(--ink); font-weight: 600; }
+
+  /* ---- Figures ---- */
+  .result-label {
+    font-family: var(--font-ui); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin: 1.6rem 0 0.5rem;
+  }
+  figure { margin: 0.6rem 0 0; }
+  figure img {
+    display: block; width: 100%; height: auto; border: 1px solid var(--line-strong);
+    border-radius: 12px; background: var(--warm2);
+  }
+  figcaption { margin-top: 0.65rem; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  /* ---- Callout ---- */
+  .callout {
+    margin: 1.5rem 0 0; padding: 1.1rem 1.25rem; background: var(--warm);
+    border: 1px solid var(--line); border-radius: 10px;
+  }
+  .callout p { margin: 0; font-size: 0.98rem; color: var(--body); }
+  .callout p + p { margin-top: 0.6rem; }
+
+  hr.sep { border: 0; border-top: 1px solid var(--line); margin: 3.25rem 0 0; }
+
+  /* ---- Closing ---- */
+  .closing { margin-top: 3.5rem; padding: 1.75rem; background: var(--ink); border-radius: 16px; color: rgba(255,255,255,0.86); }
+  .closing h2 { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 1.6rem; letter-spacing: -0.02em; color: #fff; }
+  .closing p { margin: 0.8rem 0 0; font-size: 1.02rem; line-height: 1.55; }
+  .closing code { font-family: var(--font-mono); font-size: 0.85em; background: rgba(255,255,255,0.12); padding: 0.08rem 0.35rem; border-radius: 4px; color: #eaf3ff; }
+
+  footer.doc { margin-top: 2.5rem; color: var(--muted); font-family: var(--font-ui); font-size: 0.8rem; }
+
+  @media print {
+    @page { size: A4 portrait; margin: 14mm; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .page { padding: 0; max-width: 100%; }
+    .cover { min-height: 245mm; }
+    h1 { font-size: 3.3rem; }
+    .step { break-before: page; margin-top: 0; }
+    .closing { break-before: page; }
+    figure, table.dtable, .callout { break-inside: avoid; }
+    figure { text-align: center; }
+    figure img { max-height: 120mm; width: auto; max-width: 100%; margin: 0 auto; }
+    .step p.explain { font-size: 1rem; }
+    hr.sep { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="cover">
+    <span class="pill"><span class="dot"></span>Medicare Part D &middot; Ophthalmology</span>
+    <div class="cover-main">
+      <h1>Drug coverage in<br />Medicare Part&nbsp;D plans<br /><span class="soft">The MPDP Formulary Explorer</span></h1>
+      <p class="lead">This document describes the MPDP Formulary Explorer, a static dashboard
+      constructed from the CMS Monthly Prescription Drug Plan Formulary and Pharmacy Network Information
+      file. Ophthalmic medications are used as worked examples throughout: glaucoma drops, dry-eye
+      therapies, and ocular anti-inflammatory agents. Each section states the analytical question
+      addressed by a given view, an ophthalmology example drawn from the underlying data, and the
+      corresponding result.</p>
+    </div>
+    <p class="meta"><b>Dataset:</b> CMS MPDP Formulary PUF, contract year 2026 &nbsp;&middot;&nbsp;
+    <b>5,518</b> plans, <b>691</b> contracts, <b>328</b> formularies, <b>6,156</b> distinct drugs
+    &nbsp;&middot;&nbsp; coverage, tier, restriction, cost-sharing, and county data
+    &nbsp;&middot;&nbsp; snapshot 2026-05-31</p>
+  </header>
+
+  <!-- Section 1: Data source -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">1</span>
+      <div>
+        <p class="step-eyebrow">Data source</p>
+        <h2>The underlying formulary file</h2>
+      </div>
+    </div>
+    <p class="explain">The data source is the public formulary submission that each Medicare Part D plan
+    files with CMS. A <b>plan</b> is defined by a unique contract, plan, and segment combination; each
+    plan references one of a smaller set of <b>formularies</b>, the drug lists that define coverage. A
+    single formulary is shared across many plans, such that 328 formularies serve all 5,518 plans, a
+    mean of approximately 17 plans per formulary.</p>
+    <p class="explain">For each drug on a formulary, the file records a cost-sharing <b>tier</b> and
+    three utilization-management indicators: prior authorization (<code class="mono">PA</code>), step
+    therapy (<code class="mono">ST</code>), and quantity limit (<code class="mono">QL</code>). Companion
+    files provide tier cost sharing, excluded drugs, insulin cost sharing, and county service areas. The
+    dashboard integrates these files into drug-level and plan-level views. The examples presented here
+    are self-administered ophthalmic medications, which are adjudicated under the Part D pharmacy
+    benefit.</p>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- Section 2: Aggregate statistics -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">2</span>
+      <div>
+        <p class="step-eyebrow">Aggregate statistics</p>
+        <h2>Market-level summary statistics</h2>
+      </div>
+    </div>
+    <p class="explain">The Overview screen summarizes the entire market prior to the selection of any
+    individual drug, reporting aggregate counts, the distribution of listings across tiers, and the
+    frequency with which each restriction is applied. Across all formulary listings, quantity limits
+    are the most frequently applied restriction (38.8% of listings), prior authorization applies to
+    28.3%, and step therapy is uncommon (1.1%). These market-level rates provide a reference against
+    which the restriction profile of an individual drug, examined in subsequent sections, can be
+    interpreted.</p>
+    <p class="result-label">Overview screen</p>
+    <figure>
+      <img src="overview-img/01-overview.png" alt="Overview screen with market totals, tier mix, and restriction prevalence" />
+      <figcaption>Aggregate counts (5,518 plans, 691 contracts, 328 formularies, 6,156 drugs), the
+      tier-mix histogram, and restriction prevalence. The plan-type and special-needs breakdowns
+      indicate that <b>5,123</b> of the plans are local Medicare Advantage plans and <b>367</b> are
+      stand-alone prescription drug plans.</figcaption>
+    </figure>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- Section 3: Drug explorer -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">3</span>
+      <div>
+        <p class="step-eyebrow">Drug explorer</p>
+        <h2>Drug-level coverage and restriction rates</h2>
+      </div>
+    </div>
+    <p class="explain">The Drug explorer lists each drug with its market-wide coverage and restriction
+    rates and supports free-text search, brand or generic filtering, and column sorting. A search for
+    <code class="mono">ophthalmic</code> returns 135 distinct drugs. The coverage column reflects a
+    consistent pattern in Part D ophthalmology: generic ophthalmic solutions are listed on nearly all
+    formularies, whereas their branded equivalents are not. Generic latanoprost is listed on 100% of
+    formularies, whereas branded latanoprostene bunod (Vyzulta) is listed on 54.6%.</p>
+    <p class="result-label">Drug explorer, filtered to ophthalmic drugs</p>
+    <figure>
+      <img src="overview-img/02-drug-explorer.png" alt="Drug explorer table filtered to ophthalmic drugs" />
+      <figcaption>Each row reports coverage (the proportion of the 328 formularies that list the drug)
+      and the prior-authorization, step-therapy, and quantity-limit rates among formularies that list
+      it. Selecting a column header sorts the table; selecting a row opens the drug-level detail.</figcaption>
+    </figure>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- Section 4: Drug detail + map -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">4</span>
+      <div>
+        <p class="step-eyebrow">Drug detail</p>
+        <h2>Coverage of a single drug across formularies</h2>
+      </div>
+    </div>
+    <p class="explain">Selection of a drug opens its detail view, which reports its tier placement, the
+    geographic variation in its coverage, and the plans that restrict or exclude it. Lifitegrast
+    (Xiidra), a branded dry-eye therapy, is listed on 280 of the 328 formularies. It is assigned to
+    tier 3 (non-preferred brand) on the majority of them and carries a quantity limit on approximately
+    three-quarters of those listings and prior authorization on approximately 15%. The county map is
+    recolored when the displayed metric is changed between coverage at any level and coverage without
+    restriction.</p>
+    <p class="result-label">Drug detail: tier placement and county coverage</p>
+    <figure>
+      <img src="overview-img/03-detail-map.png" alt="Drug detail showing tier placement chart and county coverage map for Xiidra" />
+      <figcaption>For lifitegrast the tier histogram concentrates on tier 3. The county map reports the
+      proportion of plans in each county that cover the drug; Alaska, Hawaii, and Puerto Rico are drawn
+      as scaled insets so that the contiguous states fill the panel.</figcaption>
+    </figure>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- Section 5: Formularies and organizations -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">5</span>
+      <div>
+        <p class="step-eyebrow">Formularies and organizations</p>
+        <h2>Formularies listing a drug and their sponsoring organizations</h2>
+      </div>
+    </div>
+    <p class="explain">The same view lists each formulary that includes the drug, together with its
+    tier, restrictions, and the number of plans that reference it. CMS assigns each formulary an
+    eight-digit identifier only, without a name; the dashboard therefore labels each formulary by the
+    organization whose plans use it (a formulary shared across affiliated organizations is labeled by
+    the first, with a count of the remainder). For lifitegrast, the listing formularies are sponsored
+    by organizations including Sentara Health Plans, Elderserve Health, and Group Health Cooperative of
+    Eau Claire, and a single formulary may serve as many as eight of an organization's plans.</p>
+    <p class="result-label">Formularies listing the drug, labeled by organization</p>
+    <figure>
+      <img src="overview-img/04-formularies.png" alt="Table of formularies that list the drug, labeled by organization" />
+      <figcaption>Each row presents an organization name above its formulary identifier, the tier, the
+      restriction (here a quantity limit of 60 units per 30 days, or unrestricted), and the plan count.
+      No plan in the file excludes this drug.</figcaption>
+    </figure>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- Section 6: Restrictions -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">6</span>
+      <div>
+        <p class="step-eyebrow">Restrictions</p>
+        <h2>Prior authorization, step therapy, and quantity limits</h2>
+      </div>
+    </div>
+    <p class="explain">Restriction rates vary substantially across ophthalmic agents even when overall
+    coverage is similar. Quantity limits are most prevalent among the newer branded products (ophthalmic
+    solutions are dispensed in fixed volumes), step therapy is applied where a lower-cost alternative is
+    available, and prior authorization is concentrated among the higher-cost dry-eye agents. The table
+    reports, for a representative set, the proportion of listing formularies that apply each
+    restriction.</p>
+    <p class="data-label">Restriction rates among listing formularies</p>
+    <table class="dtable">
+      <thead>
+        <tr><th>Drug</th><th></th><th class="num">Coverage</th><th class="num">PA</th><th class="num">ST</th><th class="num">QL</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="drug">lifitegrast (Xiidra)</td><td><span class="tag brand">brand</span></td><td class="num">85.4%</td><td class="num">15.0%</td><td class="num">0%</td><td class="num">75.4%</td></tr>
+        <tr><td class="drug">netarsudil (Rhopressa)</td><td><span class="tag brand">brand</span></td><td class="num">90.5%</td><td class="num">0.7%</td><td class="num">12.8%</td><td class="num">48.8%</td></tr>
+        <tr><td class="drug">brinzolamide 10 MG/ML</td><td><span class="tag generic">generic</span></td><td class="num">67.4%</td><td class="num">0%</td><td class="num">27.6%</td><td class="num">1.8%</td></tr>
+        <tr><td class="drug">cyclosporine (Cequa)</td><td><span class="tag brand">brand</span></td><td class="num">3.0%</td><td class="num">20.0%</td><td class="num">0%</td><td class="num">30.0%</td></tr>
+        <tr><td class="drug">loteprednol 2 MG/ML</td><td><span class="tag generic">generic</span></td><td class="num">37.8%</td><td class="num">0.8%</td><td class="num">41.1%</td><td class="num">1.6%</td></tr>
+      </tbody>
+    </table>
+    <p class="tnote">The patterns are distinct: <b>lifitegrast (Xiidra)</b> is widely covered but
+    quantity-limited and frequently subject to prior authorization; <b>brinzolamide</b> and
+    <b>loteprednol</b> carry step therapy on one-quarter to two-fifths of formularies; and
+    <b>cyclosporine (Cequa)</b>, which has low overall coverage, is subject to prior authorization where
+    it is listed.</p>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- Section 7: Generic vs brand -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">7</span>
+      <div>
+        <p class="step-eyebrow">Generic and brand</p>
+        <h2>Differential coverage of generic and brand formulations</h2>
+      </div>
+    </div>
+    <p class="explain">Pairing each molecule's generic formulation with its brand formulation
+    demonstrates the generic-first structure of Part D formularies. For a given product, the generic is
+    listed on the majority of formularies while the brand is listed on few, as plans direct utilization
+    toward the generic. The brand and generic filter, together with the side-by-side coverage values,
+    makes this relationship directly observable.</p>
+    <p class="data-label">Same molecule, generic versus brand coverage</p>
+    <table class="dtable">
+      <thead>
+        <tr><th>Molecule</th><th class="num">Generic coverage</th><th class="num">Brand coverage</th><th>Brand</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="drug">dorzolamide / timolol</td><td class="num">100.0%</td><td class="num">0.3%</td><td>Cosopt</td></tr>
+        <tr><td class="drug">travoprost</td><td class="num">76.5%</td><td class="num">0.3%</td><td>Travatan</td></tr>
+        <tr><td class="drug">difluprednate</td><td class="num">68.3%</td><td class="num">0.6%</td><td>Durezol</td></tr>
+        <tr><td class="drug">brimonidine 1 MG/ML</td><td class="num">64.3%</td><td class="num">9.1%</td><td>Alphagan</td></tr>
+      </tbody>
+    </table>
+    <p class="tnote">Where no generic formulation exists, the brand accounts for coverage on its own:
+    branded <b>netarsudil (Rhopressa)</b> reaches 90.5% of formularies because no generic substitute is
+    available. Both situations are evident from the same coverage column.</p>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- Section 8: Plan explorer -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">8</span>
+      <div>
+        <p class="step-eyebrow">Plan explorer</p>
+        <h2>Plan-level characteristics and cost sharing</h2>
+      </div>
+    </div>
+    <p class="explain">The Plan explorer addresses the complementary question. The 5,518 plans may be
+    filtered by type, special-needs status, and state, and an individual plan may be opened to display
+    its premium, deductible, tier cost sharing by coverage phase, insulin cost sharing, excluded drugs,
+    and a searchable copy of its formulary. A Compare view presents two to four plans in parallel. For
+    an individual patient, a tier assignment obtained from the drug-level view corresponds here to a
+    specific cost-sharing amount: within a single plan, a tier 1 generic ophthalmic solution and a
+    tier 3 branded product carry substantially different copayments.</p>
+    <p class="result-label">Plan explorer, filtered to stand-alone drug plans</p>
+    <figure>
+      <img src="overview-img/05-plan-explorer.png" alt="Plan explorer table filtered to stand-alone prescription drug plans" />
+      <figcaption>Premium, deductible, formulary size, prior-authorization and quantity-limit rates,
+      and excluded-drug counts for each plan. Premiums in this view range from $6.70 to $238.60; the
+      exclusion count is small for every plan, because the excluded-drugs file contains only a narrow
+      standardized set (median of six drugs per plan).</figcaption>
+    </figure>
+  </section>
+
+  <hr class="sep" />
+
+  <!-- Section 9: Benefit scope -->
+  <section class="step">
+    <div class="step-head">
+      <span class="badge">9</span>
+      <div>
+        <p class="step-eyebrow">Benefit scope</p>
+        <h2>Drugs outside the Part D pharmacy benefit</h2>
+      </div>
+    </div>
+    <p class="explain">One category of ophthalmic therapy is absent by design. The intravitreal
+    anti-VEGF agents used for neovascular age-related macular degeneration and diabetic macular edema,
+    including aflibercept (Eylea), ranibizumab (Lucentis), and faricimab (Vabysmo), do not appear in
+    this file. These agents are administered by a physician in the clinical setting and are consequently
+    covered under the Medicare Part B medical benefit rather than the Part D pharmacy benefit that this
+    formulary file describes.</p>
+    <div class="callout">
+      <p>The dashboard represents self-administered ophthalmic medications (glaucoma drops, dry-eye
+      solutions, and ocular anti-inflammatory agents) and reports their coverage, tiers, and
+      restrictions in full. It does not, and cannot from this source, characterize office-administered
+      injectable agents. A search for aflibercept or ranibizumab returns no results, consistent with the
+      adjudication of those agents under a different Medicare benefit.</p>
+    </div>
+  </section>
+
+  <!-- Closing -->
+  <section class="closing">
+    <h2>Construction and reproducibility</h2>
+    <p>A four-stage Python pipeline (<code>ingest</code>, <code>transform</code>, <code>aggregate</code>,
+    and <code>export</code>) reads the pipe-delimited CMS files, resolves drug names through RxNorm, maps
+    county codes to FIPS codes, and writes compact JSON. A JavaScript front end renders the five views
+    from that JSON without a server. The command <code>uv run python -m mpdp_formulary.cli all</code>
+    generates the data, and <code>python -m http.server --directory dashboard</code> serves the
+    dashboard.</p>
+    <p>Two limitations warrant emphasis. The file represents a single monthly snapshot and therefore
+    describes coverage as of 2026-05-31, without support for longitudinal analysis. Coverage and
+    restrictions are reported at the RxNorm drug level, and the county map maps Social Security county
+    codes to 2010 census boundaries, such that a small number of reorganized counties are displayed as
+    missing data. The methods are documented in the project README.</p>
+  </section>
+
+  <footer class="doc">
+    MPDP Formulary Explorer &middot; ophthalmology worked examples &middot; figures captured from the live dashboard
+  </footer>
+
+</div>
+</body>
+</html>
