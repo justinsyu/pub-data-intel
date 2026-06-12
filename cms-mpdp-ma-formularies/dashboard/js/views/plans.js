@@ -24,9 +24,16 @@ window.MPDP = window.MPDP || {views: {}};
         container: root.querySelector("#pTable"),
         pageSize: 50,
         label: "plans",
-        headHtml: `<tr>
-          <th>Plan</th><th>Type</th><th>Premium</th><th>Deductible</th>
-          <th>Drugs</th><th>${Defs.abbr("PA")}</th><th>${Defs.abbr("QL")}</th><th>Excluded</th></tr>`,
+        columns: [
+          {label: "Plan", get: p => p.plan_name, type: "text"},
+          {label: "Type", get: p => p.type, type: "text"},
+          {label: "Premium", get: p => p.premium, type: "num"},
+          {label: "Deductible", get: p => p.deductible, type: "num"},
+          {label: "Drugs", get: p => p.n_drugs, type: "num"},
+          {label: Defs.abbr("PA"), get: p => p.pa_pct, type: "num"},
+          {label: Defs.abbr("QL"), get: p => p.ql_pct, type: "num"},
+          {label: "Excluded", get: p => p.n_excluded, type: "num"},
+        ],
         rowHtml: p => `<tr class="click" data-key="${Fmt.esc(p.plan_key)}">
             <td>${Fmt.esc(p.plan_name)}
               ${p.suppressed === "Y"
@@ -77,28 +84,12 @@ window.MPDP = window.MPDP || {views: {}};
         shard.costs.forEach(c => {
           (costsByLevel[c.level] = costsByLevel[c.level] || []).push(c);
         });
+        const costLevels = suppressed ? [] : Object.keys(costsByLevel).sort();
         const costTables = suppressed
           ? "<p class='muted'>Cost data suppressed by CMS for this plan.</p>"
-          : Object.keys(costsByLevel).sort().map(level => {
-              const rows = costsByLevel[level].sort((a, b) =>
-                (a.tier - b.tier) || (a.days - b.days));
-              return `<h4>${Fmt.esc(meta.coverage_level_labels[level] ||
-                  ("Level " + level))}</h4>
-                <table><thead><tr><th>${Defs.abbr("Tier")}</th><th>Supply</th>
-                  <th>${Defs.abbr("Preferred", "Preferred retail")}</th><th>Standard retail</th>
-                  <th>Preferred mail</th><th>Standard mail</th>
-                  <th>Deductible applies</th></tr></thead><tbody>` +
-                rows.map(c => `<tr>
-                  <td>${c.tier}${c.specialty === "Y"
-                    ? ` <span class="badge" title="${Fmt.esc(Defs.tip("Specialty"))}">specialty</span>` : ""}</td>
-                  <td>${Fmt.esc(meta.days_supply_labels[c.days] || c.days)}</td>
-                  <td>${Fmt.cost(c.channels.pref)}</td>
-                  <td>${Fmt.cost(c.channels.nonpref)}</td>
-                  <td>${Fmt.cost(c.channels.mail_pref)}</td>
-                  <td>${Fmt.cost(c.channels.mail_nonpref)}</td>
-                  <td>${c.ded_applies}</td></tr>`).join("") +
-                "</tbody></table>";
-            }).join("");
+          : costLevels.map(level =>
+              `<h4>${Fmt.esc(meta.coverage_level_labels[level] || ("Level " + level))}</h4>
+               <div id="pCost-${Fmt.esc(level)}"></div>`).join("");
 
         const insCell = (cp, cn) => {
           if (cp == null && cn == null) return "n/a";
@@ -109,28 +100,12 @@ window.MPDP = window.MPDP || {views: {}};
         };
         const insTable = suppressed || !shard.insulin.length ? "" :
           `<div class="panel"><h3>Insulin cost sharing (lesser of copay and coinsurance applies)</h3>
-            <table><thead><tr><th>${Defs.abbr("Tier")}</th><th>Supply</th>
-              <th>Preferred retail</th><th>Standard retail</th>
-              <th>Preferred mail</th><th>Standard mail</th></tr></thead><tbody>` +
-          shard.insulin.map(i => `<tr>
-            <td>${i.tier ?? "std"}</td>
-            <td>${Fmt.esc(meta.days_supply_labels[i.days] || i.days)}</td>
-            ${[0, 1, 2, 3].map(k => `<td>${insCell(i.copay[k], i.coin[k])}</td>`).join("")}</tr>`).join("") +
-          "</tbody></table></div>";
+            <div id="pInsulin"></div></div>`;
 
         const ex = Data.table(shard.excluded);
         const exTable = ex.length ? `<div class="panel">
             <h3>Excluded drugs (${ex.length})</h3>
-            <table><thead><tr><th>Drug</th><th>${Defs.abbr("Tier")}</th><th>${Defs.abbr("PA")}</th><th>${Defs.abbr("ST")}</th>
-              <th>${Defs.abbr("QL")}</th><th>${Defs.abbr("Capped")}</th></tr></thead><tbody>` +
-          ex.map(r => `<tr>
-            <td><a href="#" data-rxcui="${Fmt.esc(r.rxcui)}">
-              ${Fmt.esc(r.name || r.rxcui)}</a></td>
-            <td>${r.tier ?? ""}</td><td>${Fmt.flag(r.pa)}</td>
-            <td>${Fmt.flag(r.st)}</td>
-            <td>${r.ql ? `${Fmt.esc(r.ql_amount || "?")} / ${Fmt.esc(r.ql_days || "?")}d` : "No"}</td>
-            <td>${Fmt.flag(r.capped)}</td></tr>`).join("") +
-          "</tbody></table></div>"
+            <div id="pExcluded"></div></div>`
           : "<div class='panel'><h3>Excluded drugs</h3><p class='muted'>None reported.</p></div>";
 
         const indList = shard.indications.length ? `<div class="panel">
@@ -162,11 +137,60 @@ window.MPDP = window.MPDP || {views: {}};
               <span class="muted" id="fCount"></span></div>
             <div id="fTable"><p class="muted">Loading formulary…</p></div></div>`;
         el.scrollIntoView({behavior: "smooth", block: "start"});
-        el.querySelectorAll("a[data-rxcui]").forEach(a =>
-          a.addEventListener("click", e => {
-            e.preventDefault();
-            MPDP.show("drugs", a.dataset.rxcui);
-          }));
+
+        const costCols = [
+          {label: Defs.abbr("Tier"), get: c => c.tier, type: "num"},
+          {label: "Supply", get: c => c.days, type: "num"},
+          {label: Defs.abbr("Preferred", "Preferred retail"), sortable: false},
+          {label: "Standard retail", sortable: false},
+          {label: "Preferred mail", sortable: false},
+          {label: "Standard mail", sortable: false},
+          {label: "Deductible applies", sortable: false},
+        ];
+        const costRowHtml = c => `<tr>
+          <td>${c.tier}${c.specialty === "Y"
+            ? ` <span class="badge" title="${Fmt.esc(Defs.tip("Specialty"))}">specialty</span>` : ""}</td>
+          <td>${Fmt.esc(meta.days_supply_labels[c.days] || c.days)}</td>
+          <td>${Fmt.cost(c.channels.pref)}</td>
+          <td>${Fmt.cost(c.channels.nonpref)}</td>
+          <td>${Fmt.cost(c.channels.mail_pref)}</td>
+          <td>${Fmt.cost(c.channels.mail_nonpref)}</td>
+          <td>${c.ded_applies}</td></tr>`;
+        costLevels.forEach(level => {
+          const rows = costsByLevel[level].sort((a, b) => (a.tier - b.tier) || (a.days - b.days));
+          Sort.table(el.querySelector(`#pCost-${level}`), costCols, rows, costRowHtml);
+        });
+
+        if (!suppressed && shard.insulin.length) {
+          Sort.table(el.querySelector("#pInsulin"), [
+            {label: Defs.abbr("Tier"), get: i => i.tier, type: "num"},
+            {label: "Supply", get: i => i.days, type: "num"},
+            {label: "Preferred retail", sortable: false},
+            {label: "Standard retail", sortable: false},
+            {label: "Preferred mail", sortable: false},
+            {label: "Standard mail", sortable: false},
+          ], shard.insulin, i => `<tr>
+            <td>${i.tier ?? "std"}</td>
+            <td>${Fmt.esc(meta.days_supply_labels[i.days] || i.days)}</td>
+            ${[0, 1, 2, 3].map(k => `<td>${insCell(i.copay[k], i.coin[k])}</td>`).join("")}</tr>`);
+        }
+
+        if (ex.length) Sort.table(el.querySelector("#pExcluded"), [
+          {label: "Drug", get: r => r.name || r.rxcui, type: "text"},
+          {label: Defs.abbr("Tier"), get: r => r.tier, type: "num"},
+          {label: Defs.abbr("PA"), get: r => r.pa ? 1 : 0, type: "num"},
+          {label: Defs.abbr("ST"), get: r => r.st ? 1 : 0, type: "num"},
+          {label: Defs.abbr("QL"), get: r => r.ql ? 1 : 0, type: "num"},
+          {label: Defs.abbr("Capped"), get: r => r.capped ? 1 : 0, type: "num"},
+        ], ex, r => `<tr>
+            <td><a href="#" data-rxcui="${Fmt.esc(r.rxcui)}">${Fmt.esc(r.name || r.rxcui)}</a></td>
+            <td>${r.tier ?? ""}</td><td>${Fmt.flag(r.pa)}</td>
+            <td>${Fmt.flag(r.st)}</td>
+            <td>${r.ql ? `${Fmt.esc(r.ql_amount || "?")} / ${Fmt.esc(r.ql_days || "?")}d` : "No"}</td>
+            <td>${Fmt.flag(r.capped)}</td></tr>`, {
+          afterRender: container => container.querySelectorAll("a[data-rxcui]").forEach(a =>
+            a.addEventListener("click", e => { e.preventDefault(); MPDP.show("drugs", a.dataset.rxcui); })),
+        });
 
         const fid = p.formulary_idx >= 0
           ? meta.formulary_order[p.formulary_idx] : null;
@@ -181,8 +205,14 @@ window.MPDP = window.MPDP || {views: {}};
           container: el.querySelector("#fTable"),
           pageSize: 50,
           label: `drugs on formulary ${fid}`,
-          headHtml: `<tr><th>Drug</th><th>Type</th><th>${Defs.abbr("Tier")}</th>
-            <th>${Defs.abbr("PA")}</th><th>${Defs.abbr("ST")}</th><th>${Defs.abbr("QL")}</th></tr>`,
+          columns: [
+            {label: "Drug", get: r => r.name, type: "text"},
+            {label: "Type", get: r => r.bg, type: "text"},
+            {label: Defs.abbr("Tier"), get: r => r.tier, type: "num"},
+            {label: Defs.abbr("PA"), get: r => r.pa ? 1 : 0, type: "num"},
+            {label: Defs.abbr("ST"), get: r => r.st ? 1 : 0, type: "num"},
+            {label: Defs.abbr("QL"), get: r => r.ql ? 1 : 0, type: "num"},
+          ],
           rowHtml: r => `<tr>
             <td><a href="#" data-rxcui="${Fmt.esc(r.rxcui)}">${Fmt.esc(r.name)}</a></td>
             <td>${r.bg || ""}</td><td>${r.tier ?? ""}</td>

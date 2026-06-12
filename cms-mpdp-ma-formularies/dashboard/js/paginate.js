@@ -2,17 +2,20 @@
 // controls; setRows(rows) resets to page 1 and re-renders. afterRender runs
 // after every page render so callers can (re)attach row listeners.
 window.Paginate = (() => {
-  function create({container, pageSize, headHtml, rowHtml, afterRender, label}) {
+  function create({container, pageSize, headHtml, rowHtml, afterRender, label, columns}) {
     let rows = [], page = 0;
+    const sortState = Sort.state();
     function render() {
       const total = rows.length;
       const pages = Math.max(1, Math.ceil(total / pageSize));
       if (page > pages - 1) page = pages - 1;
       if (page < 0) page = 0;
       const start = page * pageSize;
-      const slice = rows.slice(start, start + pageSize);
+      const sorted = columns ? Sort.apply(rows, columns, sortState) : rows;
+      const slice = sorted.slice(start, start + pageSize);
+      const head = columns ? Sort.headHtml(columns, sortState) : headHtml;
       container.innerHTML =
-        `<table><thead>${headHtml}</thead><tbody>` +
+        `<table><thead>${head}</thead><tbody>` +
         slice.map(rowHtml).join("") +
         "</tbody></table>" +
         `<div class="pager">
@@ -25,6 +28,7 @@ window.Paginate = (() => {
       const next = container.querySelector('[data-pg="next"]');
       if (prev) prev.onclick = () => { if (page > 0) { page--; render(); } };
       if (next) next.onclick = () => { if (page < pages - 1) { page++; render(); } };
+      if (columns) Sort.wire(container, columns, sortState, () => { page = 0; render(); });
       if (afterRender) afterRender(container);
     }
     return {
