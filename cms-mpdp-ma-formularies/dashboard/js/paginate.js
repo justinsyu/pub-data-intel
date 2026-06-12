@@ -18,7 +18,7 @@ window.Paginate = (() => {
         `<div class="pager">
            <button type="button" data-pg="prev"${page === 0 ? " disabled" : ""}>‹ Prev</button>
            <button type="button" data-pg="next"${page >= pages - 1 ? " disabled" : ""}>Next ›</button>
-           <span class="muted">Showing ${total ? Fmt.num(start + 1) : 0}–${Fmt.num(start + slice.length)} of ${Fmt.num(total)} ${label}</span>
+           <span class="muted">Showing ${total ? Fmt.num(start + 1) : 0} to ${Fmt.num(start + slice.length)} of ${Fmt.num(total)} ${label}</span>
            <span class="muted">Page ${Fmt.num(page + 1)} of ${Fmt.num(pages)}</span>
          </div>`;
       const prev = container.querySelector('[data-pg="prev"]');
