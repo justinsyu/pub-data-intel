@@ -9,3 +9,4 @@ __pycache__/
 *.log
 *.duckdb.wal
 *.duckdb.tmp/
+.playwright-mcp/
